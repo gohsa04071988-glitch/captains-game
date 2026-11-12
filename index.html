@@ -264,7 +264,7 @@ select.txt{cursor:pointer}
 .banner{min-height:56px}}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 <canvas id="ocean"></canvas><div class="vignette"></div><div class="grain"></div>
@@ -1839,26 +1839,40 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSet();$('modal
             if(window.peer) window.peer.destroy();
             window.onlineMode = false;
         };
+        
         document.getElementById('btnHost').onclick = () => {
+            if (typeof Peer === 'undefined') {
+                alert('ОШИБКА: Библиотека для сетевой игры не загрузилась!\n\nПричина: блокировщик рекламы или нет интернета.\nОтключите AdBlock для этой страницы и обновите её (F5).');
+                return;
+            }
             window.isHost = true; window.onlineMode = true;
+            const btn = document.getElementById('btnHost');
+            btn.innerText = 'Создаю комнату... (ждем сервер)';
+            
             window.peer = new Peer();
             window.peer.on('open', (id) => {
                 document.getElementById('roomCode').innerText = id;
                 document.getElementById('hostWait').hidden = false;
-                document.getElementById('btnHost').disabled = true;
+                btn.disabled = true;
+                btn.innerText = 'Комната создана';
             });
-            window.peer.on('connection', (c) => {
-                window.conn = c; setupConn();
-                document.getElementById('modalOnline').classList.remove('on');
-                toast('Игрок подключился!', 'good');
-                startOnlineMatch();
-                if (window.conn) window.conn.send({ type: 'start' });
+            window.peer.on('error', (err) => {
+                alert('Ошибка создания комнаты: ' + err.type + '\nСервер недоступен. Попробуйте позже.');
+                btn.innerText = 'Создать игру (Я хост)';
             });
         };
+        
         document.getElementById('btnJoin').onclick = () => {
+            if (typeof Peer === 'undefined') {
+                alert('ОШИБКА: Библиотека для сетевой игры не загрузилась! Проверьте интернет и отключите AdBlock.');
+                return;
+            }
             const code = document.getElementById('joinCode').value.trim();
             if(!code) return toast('Введите код', 'bad');
             window.isHost = false; window.onlineMode = true;
+            const btn = document.getElementById('btnJoin');
+            btn.innerText = 'Подключаюсь...';
+            
             window.peer = new Peer();
             window.peer.on('open', () => {
                 window.conn = window.peer.connect(code);
@@ -1866,6 +1880,10 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSet();$('modal
                 document.getElementById('modalOnline').classList.remove('on');
                 toast('Подключение...', 'good');
                 startOnlineMatch();
+            });
+            window.peer.on('error', (err) => {
+                alert('Ошибка подключения: ' + err.type + '\nПроверьте код комнаты.');
+                btn.innerText = 'Подключиться';
             });
         };
     }
