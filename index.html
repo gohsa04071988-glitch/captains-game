@@ -1828,6 +1828,13 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSet();$('modal
 
     /* --- ОНЛАЙН ЛОГИКА --- */
     window.peer = null; window.conn = null; window.isHost = false; window.onlineMode = false;
+    // НАСТРОЙКИ ТВОЕГО СЕРВЕРА VERCEL
+    const MY_PEER_CONFIG = {
+        host: 'my-peer-server.vercel.app',
+        port: 443,
+        path: '/',
+        secure: true
+    };
 
     function initOnlineUI() {
         document.getElementById('btnOnline').onclick = () => {
@@ -1842,14 +1849,14 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSet();$('modal
         
         document.getElementById('btnHost').onclick = () => {
             if (typeof Peer === 'undefined') {
-                alert('ОШИБКА: Библиотека для сетевой игры не загрузилась!\n\nПричина: блокировщик рекламы или нет интернета.\nОтключите AdBlock для этой страницы и обновите её (F5).');
+                alert('ОШИБКА: Библиотека не загрузилась. Отключите AdBlock и обновите страницу.');
                 return;
             }
             window.isHost = true; window.onlineMode = true;
             const btn = document.getElementById('btnHost');
             btn.innerText = 'Создаю комнату... (ждем сервер)';
             
-            window.peer = new Peer();
+            window.peer = new Peer(MY_PEER_CONFIG);
             window.peer.on('open', (id) => {
                 document.getElementById('roomCode').innerText = id;
                 document.getElementById('hostWait').hidden = false;
@@ -1857,14 +1864,14 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSet();$('modal
                 btn.innerText = 'Комната создана';
             });
             window.peer.on('error', (err) => {
-                alert('Ошибка создания комнаты: ' + err.type + '\nСервер недоступен. Попробуйте позже.');
+                alert('Ошибка создания комнаты: ' + err.type + '\nСервер Vercel не отвечает.');
                 btn.innerText = 'Создать игру (Я хост)';
             });
         };
         
         document.getElementById('btnJoin').onclick = () => {
             if (typeof Peer === 'undefined') {
-                alert('ОШИБКА: Библиотека для сетевой игры не загрузилась! Проверьте интернет и отключите AdBlock.');
+                alert('ОШИБКА: Библиотека не загрузилась. Отключите AdBlock.');
                 return;
             }
             const code = document.getElementById('joinCode').value.trim();
@@ -1873,7 +1880,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSet();$('modal
             const btn = document.getElementById('btnJoin');
             btn.innerText = 'Подключаюсь...';
             
-            window.peer = new Peer();
+            window.peer = new Peer(MY_PEER_CONFIG);
             window.peer.on('open', () => {
                 window.conn = window.peer.connect(code);
                 setupConn();
