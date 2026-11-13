@@ -1,0 +1,1370 @@
+     1→<!DOCTYPE html>
+     2→<html lang="ru">
+     3→<head>
+     4→<meta charset="utf-8">
+     5→<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+     6→<title>Капитаны островов</title>
+     7→<style>
+     8→*,*::before,*::after{box-sizing:border-box}
+     9→[hidden]{display:none!important}
+    10→:root{
+    11→--abyss:#03151f;--deep:#062a3d;--sea:#0a4a63;--shallow:#12798f;--foam:#7fe6e0;
+    12→--sand:#f4dfae;--sand2:#d9b877;--ink:#0b2230;
+    13→--coral:#ff5d73;--amber:#ffc247;--acid:#7cf59b;--electric:#38e1ff;--violet:#b98cff;--magenta:#ff4fa3;
+    14→--ok:#3ddc97;--warn:#ffb020;--danger:#ff4d5e;--info:#4cc9ff;
+    15→--warm:#fff6e4;--warm2:#e8d4ad;--cool:#cfe9f2;--cool2:#8fb6c6;
+    16→--scrim:rgba(3,17,26,.76);--overlay:rgba(6,32,46,.95);
+    17→--sh1:0 2px 8px rgba(2,16,24,.3);--sh2:0 12px 30px rgba(2,16,24,.38);--sh3:0 26px 70px rgba(2,16,24,.55);
+    18→--font:"Nunito","Segoe UI",system-ui,-apple-system,Arial,sans-serif}
+    19→html,body{height:100%}
+    20→body{margin:0;font-family:var(--font);color:var(--warm);background:var(--abyss);overflow-x:hidden;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+    21→button,input,select{font-family:inherit}
+    22→::-webkit-scrollbar{width:12px;height:12px}
+    23→::-webkit-scrollbar-track{background:rgba(6,42,61,.8);border-radius:99px}
+    24→::-webkit-scrollbar-thumb{border-radius:99px;border:3px solid rgba(6,42,61,.8);background:linear-gradient(180deg,var(--foam),var(--shallow))}
+    25→::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,var(--electric),var(--shallow))}
+    26→*{scrollbar-width:thin;scrollbar-color:var(--foam) rgba(6,42,61,.8)}
+    27→#ocean{position:fixed;inset:0;z-index:0;display:block}
+    28→.vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(125% 92% at 50% 0%,transparent 38%,rgba(2,12,20,.6) 100%)}
+    29→.grain{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.055;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E")}
+    30→.shell{position:relative;z-index:3;min-height:100dvh;display:flex;flex-direction:column}
+    31→.topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:9px;padding:9px clamp(10px,3vw,24px);background:linear-gradient(180deg,rgba(4,22,33,.96),rgba(4,22,33,.64));backdrop-filter:blur(14px);border-bottom:1px solid rgba(127,230,224,.2)}
+    32→.brand{display:flex;align-items:center;gap:10px;min-width:0}
+    33→.mark{width:38px;height:38px;flex:none;border-radius:12px;display:grid;place-items:center;font-size:19px;background:conic-gradient(from 210deg,var(--electric),var(--foam),var(--acid),var(--amber),var(--coral),--magenta,var(--violet),var(--electric));box-shadow:0 0 0 2px rgba(255,255,255,.15),0 8px 22px rgba(56,225,255,.32)}
+    34→.btxt{display:flex;flex-direction:column;line-height:1.05;min-width:0}
+    35→.bname{font-weight:900;font-size:clamp(14px,2.4vw,19px);background:linear-gradient(92deg,var(--foam),var(--electric) 42%,var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap}
+    36→.bsub{font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--cool2);white-space:nowrap}
+    37→.spacer{flex:1}
+    38→.chip{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:99px;font-size:11.5px;font-weight:800;background:rgba(127,230,224,.1);border:1px solid rgba(127,230,224,.28);color:var(--cool);white-space:nowrap}
+    39→.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok)}
+    40→.ibtn{width:42px;height:42px;flex:none;border-radius:13px;border:1px solid rgba(127,230,224,.28);background:rgba(127,230,224,.1);color:var(--cool);font-size:17px;cursor:pointer;display:grid;place-items:center;transition:transform .14s,background .14s}
+    41→.ibtn:hover{background:rgba(127,230,224,.22);transform:translateY(-2px)}
+    42→.ibtn:active{transform:scale(.93)}
+    43→.ibtn.off{color:#ffb3bc;border-color:rgba(255,93,115,.5);background:rgba(255,93,115,.16)}
+    44→.stage{flex:1;display:flex;flex-direction:column;align-items:center;padding:clamp(10px,2.2vw,24px) clamp(8px,3vw,24px) 36px}
+    45→.screen{width:100%;max-width:1120px;display:none;animation:rise .5s cubic-bezier(.2,.9,.3,1) both}
+    46→.screen.on{display:block}
+    47→@keyframes rise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+    48→.panel{background:linear-gradient(165deg,rgba(9,44,62,.92),rgba(5,26,38,.95));border:1px solid rgba(127,230,224,.22);border-radius:24px;box-shadow:var(--sh2);position:relative;overflow:hidden}
+    49→.panel::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(90% 60% at 12% -10%,rgba(56,225,255,.17),transparent 60%),radial-gradient(70% 50% at 100% 0%,rgba(185,140,255,.14),transparent 60%)}
+    50→.pin{position:relative;padding:clamp(15px,2.6vw,26px)}
+    51→h1,h2,h3{margin:0}
+    52→.hero{font-size:clamp(29px,6.2vw,56px);font-weight:900;line-height:1.02;letter-spacing:-.02em;background:linear-gradient(100deg,#fff,var(--foam) 28%,var(--electric) 54%,var(--violet) 84%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 22px rgba(56,225,255,.3))}
+    53→.hsec{font-size:clamp(18px,3vw,25px);font-weight:900}
+    54→.lead{color:var(--cool);font-size:clamp(13px,1.9vw,15.5px);line-height:1.62;max-width:62ch;margin:0}
+    55→.eyebrow{font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--foam);font-weight:900}
+    56→.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:48px;padding:12px 22px;border:none;border-radius:15px;font-weight:900;font-size:15px;cursor:pointer;color:var(--ink);touch-action:manipulation;background:linear-gradient(180deg,var(--foam),#39c9c2);box-shadow:0 5px 0 #1a8f92,0 14px 26px rgba(24,180,180,.32);transition:transform .13s,box-shadow .13s,filter .13s}
+    57→.btn:hover{filter:brightness(1.07);transform:translateY(-2px)}
+    58→.btn:active{transform:translateY(4px);box-shadow:0 1px 0 #1a8f92}
+    59→.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;filter:grayscale(.55);box-shadow:0 4px 0 #1a8f92}
+    60→.btn:focus-visible{outline:3px solid var(--electric);outline-offset:3px}
+    61→.btn.big{min-height:64px;font-size:clamp(17px,3vw,23px);padding:15px 30px;border-radius:19px}
+    62→.btn.gold{background:linear-gradient(180deg,#ffe08a,var(--amber));box-shadow:0 5px 0 #c98a12,0 14px 26px rgba(255,194,71,.34);color:#4a3000}
+    63→.btn.gold:active{box-shadow:0 1px 0 #c98a12}
+    64→.btn.coral{background:linear-gradient(180deg,#ff8b9c,var(--coral));box-shadow:0 5px 0 #c22f45,0 14px 26px rgba(255,93,115,.34);color:#3d000c}
+    65→.btn.coral:active{box-shadow:0 1px 0 #c22f45}
+    66→.btn.violet{background:linear-gradient(180deg,#d3b4ff,var(--violet));box-shadow:0 5px 0 #7a4fc0,0 14px 26px rgba(185,140,255,.34);color:#25004a}
+    67→.btn.violet:active{box-shadow:0 1px 0 #7a4fc0}
+    68→.btn.ghost{background:rgba(127,230,224,.11);color:var(--cool);border:1px solid rgba(127,230,224,.32);box-shadow:none}
+    69→.btn.ghost:hover{background:rgba(127,230,224,.22)}
+    70→.btn.ghost:active{transform:scale(.97)}
+    71→.btn.sm{min-height:38px;padding:8px 14px;font-size:13px;border-radius:12px}
+    72→.herowrap{display:grid;grid-template-columns:1.05fr .95fr;gap:22px}
+    73→@media(max-width:900px){.herowrap{grid-template-columns:1fr}}
+    74→.stack{display:flex;flex-direction:column;gap:13px}
+    75→.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    76→.row.center{justify-content:center}
+    77→.grow{flex:1;min-width:0}
+    78→.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:11px}
+    79→.mcard{position:relative;text-align:left;padding:15px;border-radius:16px;cursor:pointer;border:2px solid rgba(127,230,224,.22);background:linear-gradient(160deg,rgba(18,121,143,.26),rgba(6,42,61,.52));color:var(--warm);transition:transform .16s,border-color .16s,box-shadow .16s}
+    80→.mcard:hover{transform:translateY(-3px);border-color:rgba(127,230,224,.5)}
+    81→.mcard.sel{border-color:var(--foam);box-shadow:0 0 0 3px rgba(127,230,224,.22),var(--sh2);background:linear-gradient(160deg,rgba(56,225,255,.26),rgba(6,42,61,.62))}
+    82→.mct{font-weight:900;font-size:16.5px;display:flex;align-items:center;gap:8px}
+    83→.mcs{font-size:11.5px;color:var(--cool2);margin-top:4px;font-weight:800}
+    84→.mcd{font-size:11.5px;color:var(--cool);margin-top:7px;line-height:1.5}
+    85→.mck{position:absolute;top:10px;right:10px;width:23px;height:23px;border-radius:50%;display:grid;place-items:center;background:var(--foam);color:var(--ink);font-size:12px;font-weight:900;opacity:0;transform:scale(.5);transition:.18s}
+    86→.mcard.sel .mck{opacity:1;transform:none}
+    87→.seg{display:inline-flex;padding:4px;gap:4px;border-radius:14px;background:rgba(3,21,31,.62);border:1px solid rgba(127,230,224,.22);flex-wrap:wrap}
+    88→.seg button{min-height:36px;padding:7px 14px;border:none;border-radius:11px;background:transparent;color:var(--cool2);font-weight:900;font-size:12.5px;cursor:pointer;transition:.15s}
+    89→.seg button:hover{color:var(--warm);background:rgba(127,230,224,.12)}
+    90→.seg button.on{background:linear-gradient(180deg,var(--foam),#3ac6c0);color:var(--ink);box-shadow:0 3px 10px rgba(56,225,255,.32)}
+    91→.txt{min-height:46px;padding:11px 14px;border-radius:13px;border:1px solid rgba(127,230,224,.3);background:rgba(3,21,31,.58);color:var(--warm);font-weight:800;font-size:14px;min-width:0;width:100%}
+    92→.txt::placeholder{color:var(--cool2);font-weight:700}
+    93→.txt:focus{outline:none;border-color:var(--foam);box-shadow:0 0 0 3px rgba(127,230,224,.2)}
+    94→.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(142px,1fr));gap:9px}
+    95→.tile{padding:11px;border-radius:14px;background:rgba(3,21,31,.48);border:1px solid rgba(127,230,224,.18)}
+    96→.tile b{display:block;font-size:12.5px;margin-bottom:4px}
+    97→.tile span{font-size:11px;color:var(--cool);line-height:1.5}
+    98→.bshell{display:flex;flex-direction:column;align-items:center;gap:11px}
+    99→.bframe{position:relative;padding:13px;border-radius:26px;background:linear-gradient(160deg,var(--sand),var(--sand2));box-shadow:0 20px 50px rgba(2,16,24,.5),inset 0 2px rgba(255,255,255,.6),inset 0 -3px rgba(120,86,32,.35);max-width:100%}
+   100→.bframe::after{content:'';position:absolute;inset:5px;border-radius:21px;pointer-events:none;border:2px dashed rgba(120,86,32,.24)}
+   101→.bcanvas{display:block;border-radius:15px;touch-action:none;cursor:crosshair;box-shadow:0 8px 24px rgba(2,16,24,.35)}
+   102→.bgrid{display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:15px;align-items:start}
+   103→@media(max-width:980px){.bgrid{grid-template-columns:1fr}}
+   104→.sbar{display:flex;flex-wrap:wrap;align-items:center;gap:9px;justify-content:space-between;margin-bottom:11px}
+   105→.turn{display:inline-flex;align-items:center;gap:10px;padding:9px 17px;border-radius:99px;font-weight:900;font-size:14.5px;background:linear-gradient(100deg,rgba(61,220,151,.24),rgba(124,245,155,.12));border:1px solid rgba(61,220,151,.48);color:#c6ffe6}
+   106→.turn.wait{background:linear-gradient(100deg,rgba(255,176,32,.2),rgba(255,194,71,.08));border-color:rgba(255,176,32,.45);color:#ffdfa8}
+   107→.turn .pulse{width:9px;height:9px;border-radius:50%;background:currentColor;animation:blip 1.4s ease-in-out infinite}
+   108→@keyframes blip{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.65)}}
+   109→.banner{min-height:62px;display:flex;align-items:center;justify-content:center;gap:11px;padding:11px 18px;border-radius:18px;font-weight:900;font-size:clamp(15px,3.1vw,24px);text-align:center;background:rgba(3,21,31,.58);border:1px solid rgba(127,230,224,.22);color:var(--cool)}
+   110→.banner.flash{animation:pop .45s cubic-bezier(.2,1.5,.4,1)}
+   111→@keyframes pop{0%{transform:scale(.9);opacity:.4}60%{transform:scale(1.03)}100%{transform:scale(1);opacity:1}}
+   112→.banner.hit{background:linear-gradient(100deg,rgba(255,93,115,.3),rgba(255,176,32,.15));border-color:rgba(255,93,115,.62);color:#ffd2d8}
+   113→.banner.sunk{background:linear-gradient(100deg,rgba(255,77,94,.42),rgba(185,140,255,.22));border-color:var(--danger);color:#fff}
+   114→.banner.blocked{background:linear-gradient(100deg,rgba(255,194,71,.32),rgba(124,245,155,.15));border-color:var(--amber);color:#ffeec4}
+   115→.banner.recon{background:linear-gradient(100deg,rgba(56,225,255,.28),rgba(185,140,255,.16));border-color:var(--electric);color:#d6f7ff}
+   116→.aimbar{display:flex;align-items:center;gap:11px;flex-wrap:wrap;justify-content:center;padding:11px;border-radius:18px;background:linear-gradient(160deg,rgba(56,225,255,.14),rgba(3,21,31,.6));border:1px solid rgba(56,225,255,.36)}
+   117→#zoom{width:72px;height:72px;border-radius:12px;border:2px solid rgba(56,225,255,.5);background:#9fe2ee;flex:none;box-shadow:0 6px 16px rgba(2,16,24,.4)}
+   118→.aiminfo{display:flex;flex-direction:column;min-width:96px}
+   119→.aimlab{font-weight:900;font-size:20px;color:#d6f7ff;letter-spacing:.04em}
+   120→.side{display:flex;flex-direction:column;gap:11px}
+   121→.stat{padding:13px;border-radius:16px;background:rgba(3,21,31,.52);border:1px solid rgba(127,230,224,.2)}
+   122→.sh{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;color:var(--cool2);margin-bottom:9px}
+   123→.frow{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+   124→.fname{font-size:10.5px;font-weight:800;color:var(--cool2);width:58px;flex:none}
+   125→.pips{display:flex;gap:4px;flex-wrap:wrap}
+   126→.pip{width:15px;height:15px;border-radius:5px;background:linear-gradient(180deg,var(--foam),var(--shallow));box-shadow:inset 0 1px rgba(255,255,255,.5);transition:.25s}
+   127→.pip.dead{background:linear-gradient(180deg,#ff8b9c,var(--danger));transform:rotate(9deg) scale(.88)}
+   128→.bar{height:9px;border-radius:99px;background:rgba(3,21,31,.72);overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,.45)}
+   129→.bar>i{display:block;height:100%;border-radius:99px;transition:width .5s cubic-bezier(.2,.9,.3,1);background:linear-gradient(90deg,var(--electric),var(--acid) 55%,var(--amber))}
+   130→.log{max-height:190px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;padding-right:4px}
+   131→.li{display:flex;gap:7px;font-size:11.5px;line-height:1.45;padding:6px 9px;border-radius:10px;background:rgba(6,42,61,.55);border-left:3px solid var(--cool2);color:var(--cool);animation:sl .3s ease both}
+   132→@keyframes sl{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+   133→.li.me{border-left-color:var(--foam)}.li.foe{border-left-color:var(--coral)}.li.sys{border-left-color:var(--violet)}
+   134→.li b{color:var(--warm)}
+   135→.lr{font-size:9.5px;font-weight:900;color:var(--cool2);flex:none;padding-top:2px}
+   136→.handzone{margin-top:13px}
+   137→.hand{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:11px}
+   138→.card{position:relative;padding:13px;border-radius:18px;cursor:pointer;text-align:left;overflow:hidden;border:2px solid rgba(255,255,255,.15);color:var(--warm);min-height:128px;background:linear-gradient(165deg,rgba(9,44,62,.96),rgba(4,22,33,.98));box-shadow:var(--sh1);transition:transform .18s cubic-bezier(.2,.9,.3,1),box-shadow .18s,border-color .18s,opacity .2s}
+   139→.card::before{content:'';position:absolute;inset:0;opacity:.22;pointer-events:none;background:radial-gradient(80% 60% at 20% 0%,var(--ch),transparent 66%)}
+   140→.card::after{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:var(--ch)}
+   141→.card:hover:not(.spent):not(.locked){transform:translateY(-6px) rotate(-.6deg);box-shadow:0 20px 40px rgba(2,16,24,.5),0 0 0 2px var(--ch)}
+   142→.card.sel{border-color:var(--ch);box-shadow:0 0 0 3px rgba(255,255,255,.18),0 18px 36px rgba(2,16,24,.5);transform:translateY(-4px)}
+   143→.card.spent{opacity:.34;cursor:not-allowed;filter:grayscale(.7)}
+   144→.card.spent .stamp{opacity:1;transform:rotate(-14deg) scale(1)}
+   145→.card.locked{opacity:.42;cursor:not-allowed}
+   146→.cicon{font-size:27px;line-height:1;filter:drop-shadow(0 4px 10px rgba(0,0,0,.45))}
+   147→.cname{font-weight:900;font-size:15.5px;margin-top:7px}
+   148→.ctag{display:inline-block;margin-top:5px;padding:3px 9px;border-radius:99px;font-size:9.5px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;background:rgba(255,255,255,.1);color:var(--ch);border:1px solid var(--ch)}
+   149→.cdesc{font-size:11px;line-height:1.45;color:var(--cool);margin-top:7px}
+   150→.stamp{position:absolute;inset:0;display:grid;place-items:center;font-size:12px;font-weight:900;letter-spacing:.2em;color:var(--danger);border:3px solid var(--danger);border-radius:14px;margin:20px;opacity:0;transform:rotate(-14deg) scale(1.4);transition:.3s;pointer-events:none;background:rgba(3,21,31,.45)}
+   151→.clock{position:absolute;top:9px;right:10px;font-size:14px}
+   152→.tray{display:flex;flex-wrap:wrap;gap:9px;align-items:center;justify-content:center;padding:11px;border-radius:18px;background:rgba(3,21,31,.52);border:1px solid rgba(127,230,224,.2)}
+   153→.sbtn{display:flex;align-items:center;gap:8px;padding:9px 13px;border-radius:13px;cursor:pointer;border:2px solid rgba(127,230,224,.24);background:rgba(6,42,61,.62);color:var(--warm);font-weight:900;font-size:12.5px;transition:.16s}
+   154→.sbtn:hover{border-color:var(--foam);transform:translateY(-2px)}
+   155→.sbtn.sel{border-color:var(--amber);background:rgba(255,194,71,.18);box-shadow:0 0 0 3px rgba(255,194,71,.2)}
+   156→.sbtn.done{opacity:.55}
+   157→.smini{display:flex;gap:3px}
+   158→.smini i{width:12px;height:12px;border-radius:4px;background:linear-gradient(180deg,var(--foam),var(--shallow));display:block}
+   159→.sbtn.done .smini i{background:linear-gradient(180deg,var(--acid),#2fa96b)}
+   160→.hint{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--cool);padding:9px 13px;border-radius:12px;background:rgba(3,21,31,.48);border:1px solid rgba(127,230,224,.18)}
+   161→.hint.bad{color:#ffc9d1;border-color:rgba(255,93,115,.5);background:rgba(255,93,115,.14)}
+   162→.hint.good{color:#c6ffe6;border-color:rgba(61,220,151,.5);background:rgba(61,220,151,.14)}
+   163→.dirgrid{display:grid;grid-template-columns:repeat(3,38px);grid-template-rows:repeat(3,38px);gap:4px}
+   164→.dirgrid button{border-radius:10px;border:1px solid rgba(127,230,224,.3);background:rgba(6,42,61,.72);color:var(--cool);font-size:15px;cursor:pointer;display:grid;place-items:center;transition:.14s}
+   165→.dirgrid button:hover{background:rgba(127,230,224,.22)}
+   166→.dirgrid button.on{background:linear-gradient(180deg,var(--coral),#d63a52);color:#fff;border-color:var(--coral)}
+   167→.dirgrid .sp{visibility:hidden}
+   168→.scrim{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;padding:16px;background:var(--scrim);backdrop-filter:blur(9px)}
+   169→.scrim.on{display:flex;animation:fade .28s ease both}
+   170→@keyframes fade{from{opacity:0}to{opacity:1}}
+   171→.modal{width:min(560px,100%);max-height:88dvh;overflow-y:auto;border-radius:30px;background:linear-gradient(165deg,rgba(10,50,70,.99),rgba(4,22,33,.99));border:1px solid rgba(127,230,224,.3);box-shadow:var(--sh3);animation:zoom .38s cubic-bezier(.2,1.3,.4,1) both}
+   172→@keyframes zoom{from{opacity:0;transform:scale(.9) translateY(18px)}to{opacity:1;transform:none}}
+   173→.min{padding:clamp(17px,3.4vw,29px)}
+   174→.emblem{font-size:clamp(50px,12vw,84px);text-align:center;line-height:1;animation:bob 2.4s ease-in-out infinite}
+   175→@keyframes bob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-12px) rotate(3deg)}}
+   176→.drawer{position:fixed;top:0;right:0;bottom:0;width:min(340px,92vw);z-index:85;transform:translateX(102%);transition:transform .34s cubic-bezier(.2,.9,.3,1);background:linear-gradient(200deg,rgba(10,50,70,.99),rgba(4,22,33,.99));border-left:1px solid rgba(127,230,224,.3);box-shadow:var(--sh3);overflow-y:auto;padding:18px}
+   177→.drawer.on{transform:none}
+   178→.ctrl{margin-bottom:15px}
+   179→.ctrl label{display:flex;justify-content:space-between;font-size:12px;font-weight:900;color:var(--cool);margin-bottom:7px}
+   180→.ctrl label span{color:var(--foam)}
+   181→input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:99px;background:linear-gradient(90deg,var(--shallow),var(--electric));outline:none}
+   182→input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(180deg,#fff,var(--foam));border:2px solid var(--shallow);cursor:pointer;box-shadow:0 3px 9px rgba(2,16,24,.5)}
+   183→input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--foam);border:2px solid var(--shallow);cursor:pointer}
+   184→.tog{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:13px;background:rgba(3,21,31,.5);border:1px solid rgba(127,230,224,.2);cursor:pointer;font-size:12.5px;font-weight:900;color:var(--cool);margin-bottom:9px}
+   185→.sw{width:44px;height:24px;border-radius:99px;background:rgba(143,182,198,.3);position:relative;transition:.2s;flex:none}
+   186→.sw::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+   187→.tog.on .sw{background:linear-gradient(90deg,var(--acid),var(--foam))}
+   188→.tog.on .sw::after{transform:translateX(20px)}
+   189→select.txt{cursor:pointer}
+   190→.toasts{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:95;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:min(430px,92vw)}
+   191→.toast{padding:11px 18px;border-radius:14px;font-weight:800;font-size:13px;text-align:center;background:var(--overlay);border:1px solid rgba(127,230,224,.38);color:var(--warm);box-shadow:var(--sh2);animation:ti .3s cubic-bezier(.2,1.3,.4,1) both}
+   192→.toast.bad{border-color:rgba(255,93,115,.62);color:#ffd2d8}
+   193→.toast.good{border-color:rgba(61,220,151,.62);color:#c6ffe6}
+   194→@keyframes ti{from{opacity:0;transform:translateY(16px) scale(.94)}to{opacity:1;transform:none}}
+   195→.confetti{position:fixed;inset:0;z-index:90;pointer-events:none;overflow:hidden}
+   196→.cf{position:absolute;width:9px;height:14px;border-radius:2px;animation:fall linear forwards}
+   197→@keyframes fall{0%{transform:translateY(-24px) rotate(0);opacity:1}100%{transform:translateY(106vh) rotate(760deg);opacity:.85}}
+   198→.note{font-size:11px;color:var(--cool2);line-height:1.55;margin:0}
+   199→.div{height:1px;background:linear-gradient(90deg,transparent,rgba(127,230,224,.32),transparent);margin:13px 0}
+   200→.legend{display:flex;flex-wrap:wrap;gap:9px;font-size:11px;color:var(--cool);font-weight:800;justify-content:center}
+   201→.legend span{display:inline-flex;align-items:center;gap:5px}
+   202→.lg{width:13px;height:13px;border-radius:4px;display:inline-block;border:1px solid rgba(255,255,255,.28)}
+   203→@media(max-width:620px){.hand{grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}.card{min-height:104px;padding:10px}.cdesc{display:none}.bsub{display:none}.stage{padding:10px 8px 30px}}
+   204→@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+   205→</style>
+   206→</head>
+   207→<body>
+   208→<canvas id="ocean"></canvas><div class="vignette"></div><div class="grain"></div>
+   209→
+   210→<div class="shell">
+   211→<header class="topbar">
+   212→  <div class="brand"><div class="mark">⚓</div><div class="btxt"><div class="bname">Капитаны островов</div><div class="bsub">Скрытый флот · разведка · торпеды</div></div></div>
+   213→  <div class="spacer"></div>
+   214→  <div class="chip" id="modeChip"><i class="dot"></i><span>Локальная игра</span></div>
+   215→  <button class="ibtn" id="btnSettings" title="Оформление">⚙</button>
+   216→  <button class="ibtn" id="btnSound" title="Звук">🔊</button>
+   217→  <button class="ibtn" id="btnHelp" title="Правила">?</button>
+   218→</header>
+   219→
+   220→<main class="stage">
+   221→
+   222→<section class="screen on" id="scrMenu">
+   223→  <div class="panel"><div class="pin herowrap">
+   224→    <div class="stack">
+   225→      <div class="eyebrow">Морская дуэль для семьи</div>
+   226→      <h1 class="hero">Спрячь флот.<br>Найди чужой.</h1>
+   227→      <p class="lead">Острова мешают обоим одинаково. Кроме выстрела у каждого капитана есть три одноразовые карты: радар, эхолот, щит, торпеда и стелс. Один ход — одно действие, очередь переходит даже при попадании.</p>
+   228→      <div class="row" id="continueWrap" hidden><button class="btn violet" id="btnContinue">↩ Продолжить партию</button></div>
+   229→      <div class="stack" style="gap:8px">
+   230→        <div class="eyebrow">Поле и флот</div>
+   231→        <div class="modes" id="modeGrid"></div>
+   232→      </div>
+   233→      <div class="stack" style="gap:8px">
+   234→        <div class="eyebrow">Соперник</div>
+   235→        <div class="seg" id="oppSeg">
+   236→          <button data-opp="bot" data-lvl="easy" class="on">Компьютер · лёгкий</button>
+   237→          <button data-opp="bot" data-lvl="normal">Компьютер · средний</button>
+   238→          <button data-opp="bot" data-lvl="hard">Компьютер · сложный</button>
+   239→          <button data-opp="local">Вдвоём на устройстве</button>
+   240→        </div>
+   241→      </div>
+   242→      <div class="row">
+   243→        <div class="grow"><input class="txt" id="menuName1" maxlength="14" placeholder="Имя первого капитана" value="Капитан"></div>
+   244→        <div class="grow" id="name2Wrap" hidden><input class="txt" id="menuName2" maxlength="14" placeholder="Имя второго капитана" value="Капитан 2"></div>
+   245→      </div>
+   246→      <button class="btn big gold" id="btnStart">⚓ В бой</button>
+   247→      <p class="note">Игра по ссылке с двух телефонов — следующий шаг, здесь её нет. Компьютер подписан честно и играет по тем же правилам.</p>
+   248→    </div>
+   249→    <div class="stack">
+   250→      <div class="eyebrow">Пять карт — берёшь три</div>
+   251→      <div class="tiles" id="rulesStrip"></div>
+   252→      <div class="div"></div>
+   253→      <div class="legend">
+   254→        <span><i class="lg" style="background:#7fa8bb"></i>мимо</span>
+   255→        <span><i class="lg" style="background:#ff4d5e"></i>попадание</span>
+   256→        <span><i class="lg" style="background:#8b2233"></i>потоплен</span>
+   257→        <span><i class="lg" style="background:#ffc247"></i>щит</span>
+   258→        <span><i class="lg" style="background:#dfc189"></i>остров</span>
+   259→      </div>
+   260→      <p class="note">Результат каждого действия считает игровое ядро, анимация только показывает уже случившееся.</p>
+   261→    </div>
+   262→  </div></div>
+   263→</section>
+   264→
+   265→<section class="screen" id="scrSetup">
+   266→  <div class="panel"><div class="pin stack">
+   267→    <div class="sbar"><div><div class="eyebrow">Расстановка</div><h2 class="hsec" id="setupTitle">Капитан</h2></div><div class="chip" id="setupSub"></div></div>
+   268→    <div class="bshell">
+   269→      <div class="bframe"><canvas class="bcanvas" id="setupCanvas"></canvas></div>
+   270→      <div class="tray" id="tray"></div>
+   271→      <div class="row center">
+   272→        <button class="btn ghost sm" id="btnRotate">⟳ Повернуть</button>
+   273→        <button class="btn ghost sm" id="btnAuto">🎲 Расставить за меня</button>
+   274→        <button class="btn ghost sm" id="btnClear">✕ Убрать всё</button>
+   275→        <button class="btn gold" id="btnReady">Готов</button>
+   276→      </div>
+   277→      <div class="hint" id="setupHint">Выбери корабль снизу и нажми клетку. Уже поставленный можно тащить пальцем.</div>
+   278→    </div>
+   279→  </div></div>
+   280→</section>
+   281→
+   282→<section class="screen" id="scrCards">
+   283→  <div class="panel"><div class="pin stack">
+   284→    <div class="sbar"><div><div class="eyebrow">Снаряжение</div><h2 class="hsec" id="cardsTitle">Выбери три карты</h2></div><div class="chip" id="cardsCount">Выбрано 0 / 3</div></div>
+   285→    <p class="lead" id="cardsSub">Карты одноразовые. Соперник не видит, что ты взял.</p>
+   286→    <div class="hand" id="cardsGrid"></div>
+   287→    <div class="row center"><button class="btn big gold" id="btnCardsOk" disabled>Подтвердить набор</button></div>
+   288→  </div></div>
+   289→</section>
+   290→
+   291→<section class="screen" id="scrBattle">
+   292→  <div class="bgrid">
+   293→    <div class="panel"><div class="pin">
+   294→      <div class="sbar">
+   295→        <div class="turn" id="turnPill"><i class="pulse"></i><span>Твой ход</span></div>
+   296→        <div class="row" style="gap:7px">
+   297→          <div class="chip" id="roundChip">Круг 1</div>
+   298→          <div class="seg"><button id="tabEnemy" class="on">Ищу противника</button><button id="tabOwn">Мой флот</button></div>
+   299→        </div>
+   300→      </div>
+   301→      <div class="banner" id="banner">Выбери клетку и подтверди выстрел</div>
+   302→      <div class="bshell" style="margin-top:11px">
+   303→        <div id="enemyWrap" class="bframe"><canvas class="bcanvas" id="enemyCanvas"></canvas></div>
+   304→        <div id="ownWrap" class="bframe" hidden><canvas class="bcanvas" id="ownCanvas"></canvas></div>
+   305→        <div class="aimbar" id="aimBar" hidden>
+   306→          <canvas id="zoom" width="72" height="72"></canvas>
+   307→          <div class="aiminfo"><span class="aimlab" id="aimLabel">—</span><span class="note" id="aimHint"></span></div>
+   308→          <div class="dirgrid" id="dirPad" hidden>
+   309→            <button class="sp"></button><button data-dir="up">↑</button><button class="sp"></button>
+   310→            <button data-dir="left">←</button><button class="sp"></button><button data-dir="right">→</button>
+   311→            <button class="sp"></button><button data-dir="down">↓</button><button class="sp"></button>
+   312→          </div>
+   313→          <div class="seg" id="axisSeg" hidden><button data-axis="row" class="on">Строка</button><button data-axis="col">Столбец</button></div>
+   314→          <button class="btn gold" id="btnConfirm">Огонь</button>
+   315→          <button class="btn ghost sm" id="btnCancel">Отмена</button>
+   316→        </div>
+   317→      </div>
+   318→      <div class="handzone">
+   319→        <div class="sbar"><div class="eyebrow">Твои карты</div><div class="note" id="handHint">Максимум одна карта за ход</div></div>
+   320→        <div class="hand" id="hand"></div>
+   321→      </div>
+   322→    </div></div>
+   323→    <div class="side">
+   324→      <div class="stat"><div class="sh"><span>Флот соперника</span><span id="enemySunk">0 / 3</span></div>
+   325→        <div class="note" style="margin-bottom:7px">Осталось целых клеток: <b id="enemyLeft">7</b></div>
+   326→        <div class="bar"><i id="enemyBar" style="width:0%"></i></div></div>
+   327→      <div class="stat"><div class="sh"><span>Мой флот</span><span id="shieldChip">щит не стоит</span></div><div id="myFleet"></div>
+   328→        <div class="note" id="stealthChip" style="margin-top:6px"></div></div>
+   329→      <div class="stat"><div class="sh"><span>Журнал</span></div><div class="log" id="log"></div></div>
+   330→      <button class="btn ghost sm" id="btnLeave">← В меню</button>
+   331→    </div>
+   332→  </div>
+   333→</section>
+   334→
+   335→</main>
+   336→</div>
+   337→
+   338→<div class="scrim" id="handoff"><div class="modal"><div class="min stack center-text" style="text-align:center">
+   339→  <div class="emblem">🔄</div><h2 class="hsec">Передай устройство</h2>
+   340→  <p class="lead" style="margin:0 auto">Сейчас ходит <b id="handoffName"></b>. Второй капитан не должен видеть экран.</p>
+   341→  <button class="btn big gold" id="btnHandoff">Я готов</button>
+   342→</div></div></div>
+   343→
+   344→<div class="scrim" id="modalHelp"><div class="modal"><div class="min stack">
+   345→  <h2 class="hsec">Правила коротко</h2>
+   346→  <div class="tiles" id="helpTiles"></div>
+   347→  <div class="div"></div>
+   348→  <p class="note">Корабли ставятся прямой линией, не касаются друг друга даже углом и не заходят на острова. После начала боя расстановка закрыта. Побеждает тот, кто первым поразит все клетки чужого флота.</p>
+   349→  <button class="btn" id="btnHelpClose">Понятно</button>
+   350→</div></div></div>
+   351→
+   352→<div class="scrim" id="modalOver"><div class="modal"><div class="min stack" style="text-align:center">
+   353→  <div class="emblem" id="overEmblem">🏆</div>
+   354→  <h2 class="hsec" id="overTitle">Победа</h2>
+   355→  <p class="lead" id="overSub" style="margin:0 auto"></p>
+   356→  <div class="tiles" id="overStats"></div>
+   357→  <div class="row center"><button class="btn big gold" id="btnRematch">⚔ Реванш</button><button class="btn ghost" id="btnMenu">В меню</button></div>
+   358→  <p class="note">Расстановка соперника открыта на поле — вкладка «Ищу противника».</p>
+   359→</div></div></div>
+   360→
+   361→<div class="scrim" id="settingsScrim"></div>
+   362→<aside class="drawer" id="settingsPanel">
+   363→  <div class="sbar"><h3 class="hsec" style="font-size:19px">Оформление</h3><button class="ibtn" id="btnSetClose">✕</button></div>
+   364→  <div class="ctrl"><label>Волнение моря <span id="vWave">1.0</span></label><input type="range" id="setWave" min="0" max="2" step="0.1"></div>
+   365→  <div class="ctrl"><label>Пузырьки <span id="vBub">36</span></label><input type="range" id="setBubbles" min="0" max="90" step="1"></div>
+   366→  <div class="ctrl"><label>Свечение лучей <span id="vGlow">1.0</span></label><input type="range" id="setGlow" min="0" max="1.6" step="0.1"></div>
+   367→  <div class="ctrl"><label>Размер клеток <span id="vScale">1.0</span></label><input type="range" id="setScale" min="0.75" max="1.25" step="0.05"></div>
+   368→  <div class="tog" id="setCoords"><span>Координаты на поле</span><i class="sw"></i></div>
+   369→  <div class="tog" id="setFx"><span>Анимации эффектов</span><i class="sw"></i></div>
+   370→  <div class="ctrl"><label>Качество картинки</label><select class="txt" id="setDpr"><option value="1">Экономное</option><option value="1.5">Среднее</option><option value="2">Максимальное</option></select></div>
+   371→  <button class="btn ghost sm" id="btnSetReset" style="width:100%">Сбросить оформление</button>
+   372→  <p class="note" style="margin-top:12px">Настройки сохраняются в этом браузере и применяются сразу.</p>
+   373→</aside>
+   374→
+   375→<div class="toasts" id="toasts"></div>
+   376→<div class="confetti" id="confetti"></div>
+   377→
+   378→<script>
+   379→"use strict";
+   380→/* ======================= ЯДРО ПРАВИЛ ======================= */
+   381→const CARD_IDS=['radar','sonar','shield','torpedo','stealth'];
+   382→const CARDS={
+   383→ radar:{id:'radar',name:'Радар',icon:'📡',hue:'#38e1ff',tag:'Область',desc:'Считает целые клетки кораблей в квадрате.'},
+   384→ sonar:{id:'sonar',name:'Эхолот',icon:'🌊',hue:'#7cf59b',tag:'Линия',desc:'Считает целые клетки по строке или столбцу.'},
+   385→ shield:{id:'shield',name:'Щит',icon:'🛡',hue:'#ffc247',tag:'Защита',desc:'Гасит одно попадание целиком. Урона нет.'},
+   386→ torpedo:{id:'torpedo',name:'Торпеда',icon:'🚀',hue:'#ff5d73',tag:'Сквозь',desc:'Идёт через всё поле и бьёт каждую клетку на линии.'},
+   387→ stealth:{id:'stealth',name:'Стелс',icon:'🌫',hue:'#b98cff',tag:'Тишина',desc:'Соперник не может разведывать один свой ход.'}};
+   388→const MODES={
+   389→ simple:{id:'simple',name:'Простой',n:6,fleet:[3,2,2],islands:[[2,2],[3,3]],recon:2,label:'6 × 6 · флот 3–2–2',desc:'Крупные клетки, радар 2×2. Хорошо для младших.'},
+   390→ hard:{id:'hard',name:'Сложный',n:8,fleet:[4,3,2,2],islands:[[2,2],[2,5],[5,2],[5,5]],recon:3,label:'8 × 8 · флот 4–3–2–2',desc:'Больше воды, радар 3×3, четыре острова.'}};
+   391→const SHIPNAME={4:'Флагман',3:'Крейсер',2:'Катер'};
+   392→class RuleError extends Error{constructor(code,msg){super(msg||code);this.code=code;}}
+   393→const K=(r,c)=>r+','+c;
+   394→const U=s=>s.split(',').map(Number);
+   395→const LET='ABCDEFGH';
+   396→const coord=(r,c)=>LET[c]+(r+1);
+   397→function shipCells(r,c,len,dir){const o=[];for(let i=0;i<len;i++)o.push(dir==='v'?[r+i,c]:[r,c+i]);return o;}
+   398→function haloOf(cells){const s=new Set();for(const p of cells)for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)s.add(K(p[0]+dr,p[1]+dc));return s;}
+   399→function allPlacements(n,len,islands){const isl=new Set(islands.map(p=>K(p[0],p[1])));const o=[];
+   400→ for(let r=0;r<n;r++)for(let c=0;c<n;c++)for(const dir of ['h','v']){const cs=shipCells(r,c,len,dir);
+   401→  if(!cs.every(p=>p[0]>=0&&p[0]<n&&p[1]>=0&&p[1]<n))continue;
+   402→  if(cs.some(p=>isl.has(K(p[0],p[1]))))continue;o.push(cs);}return o;}
+   403→function placementOk(n,islands,ships,cells){
+   404→ const isl=new Set(islands.map(p=>K(p[0],p[1])));const occ=new Set(),forb=new Set(isl);
+   405→ for(const sh of ships){for(const p of sh){occ.add(K(p[0],p[1]));}haloOf(sh).forEach(k=>forb.add(k));}
+   406→ for(const p of cells){const r=p[0],c=p[1];
+   407→  if(r<0||r>=n||c<0||c>=n)return 'bounds';
+   408→  if(isl.has(K(r,c)))return 'island';
+   409→  if(occ.has(K(r,c)))return 'overlap';
+   410→  if(forb.has(K(r,c)))return 'touch';}
+   411→ return null;}
+   412→const PLACE_MSG={bounds:'Корабль выходит за поле',island:'На острове ставить нельзя',overlap:'Корабли пересекаются',touch:'Между кораблями нужна клетка воды, даже по диагонали'};
+   413→function validateFleet(n,islands,fleetSizes,ships){
+   414→ if(!Array.isArray(ships)||ships.length!==fleetSizes.length)throw new RuleError('fleet','Нужно ровно '+fleetSizes.length+' корабля');
+   415→ const sizes=[];
+   416→ for(let i=0;i<ships.length;i++){const cs=ships[i].map(x=>[x[0]|0,x[1]|0]);sizes.push(cs.length);
+   417→  const rows=new Set(cs.map(x=>x[0])),cols=new Set(cs.map(x=>x[1]));
+   418→  if(rows.size!==1&&cols.size!==1)throw new RuleError('line','Корабль должен стоять прямой линией');
+   419→  if(rows.size===1){const xs=cs.map(x=>x[1]).sort((a,b)=>a-b);for(let j=1;j<xs.length;j++)if(xs[j]!==xs[j-1]+1)throw new RuleError('gap','В корпусе разрыв');}
+   420→  else{const ys=cs.map(x=>x[0]).sort((a,b)=>a-b);for(let j=1;j<ys.length;j++)if(ys[j]!==ys[j-1]+1)throw new RuleError('gap','В корпусе разрыв');}
+   421→  const err=placementOk(n,islands,ships.slice(0,i),cs);
+   422→  if(err)throw new RuleError(err,PLACE_MSG[err]);}
+   423→ const a=sizes.slice().sort((x,y)=>y-x).join(','),b=fleetSizes.slice().sort((x,y)=>y-x).join(',');
+   424→ if(a!==b)throw new RuleError('fleet','Состав флота не тот: нужен '+b);
+   425→ return true;}
+   426→function randomFleet(n,islands,fleetSizes,rng){
+   427→ const rand=rng||Math.random;const cand={};
+   428→ for(const L of new Set(fleetSizes))cand[L]=allPlacements(n,L,islands);
+   429→ const order=fleetSizes.slice().sort((a,b)=>b-a);
+   430→ const shuf=a=>{const x=a.slice();for(let i=x.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));const t=x[i];x[i]=x[j];x[j]=t;}return x;};
+   431→ for(let att=0;att<400;att++){const placed=[];
+   432→  const bt=i=>{if(i===order.length)return true;
+   433→   for(const cs of shuf(cand[order[i]])){
+   434→    if(placementOk(n,islands,placed,cs))continue;
+   435→    placed.push(cs);if(bt(i+1))return true;placed.pop();}
+   436→   return false;};
+   437→  if(bt(0))return placed;}
+   438→ throw new RuleError('noplace','Не удалось расставить флот');}
+   439→
+   440→class Match{
+   441→ constructor(modeId,names){const m=MODES[modeId]||MODES.simple;
+   442→  this.mode=m.id;this.n=m.n;this.islands=m.islands.map(x=>x.slice());this.fleetSizes=m.fleet.slice();this.reconSize=m.recon;
+   443→  this.names=names||['Капитан 1','Капитан 2'];
+   444→  this.ships=[null,null];this.ready=[false,false];this.cards=[[],[]];this.used=[new Set(),new Set()];
+   445→  this.shieldReady=[false,false];this.stealthOn=[false,false];this.shots=[new Map(),new Map()];
+   446→  this.events=[];this.seq=0;this.version=0;this.turn=0;this.winner=null;this.phase='setup';this.starter=0;this.round=1;}
+   447→ toJSON(){return{mode:this.mode,names:this.names,ships:this.ships,ready:this.ready,cards:this.cards,
+   448→  used:[[...this.used[0]],[...this.used[1]]],shieldReady:this.shieldReady,stealthOn:this.stealthOn,
+   449→  shots:[[...this.shots[0]],[...this.shots[1]]],events:this.events,seq:this.seq,version:this.version,
+   450→  turn:this.turn,winner:this.winner,phase:this.phase,starter:this.starter,round:this.round};}
+   451→ static fromJSON(o){const m=new Match(o.mode,o.names);
+   452→  m.ships=o.ships;m.ready=o.ready;m.cards=o.cards;m.used=[new Set(o.used[0]),new Set(o.used[1])];
+   453→  m.shieldReady=o.shieldReady;m.stealthOn=o.stealthOn;m.shots=[new Map(o.shots[0]),new Map(o.shots[1])];
+   454→  m.events=o.events;m.seq=o.seq;m.version=o.version;m.turn=o.turn;m.winner=o.winner;m.phase=o.phase;
+   455→  m.starter=o.starter;m.round=o.round;return m;}
+   456→ islandSet(){return new Set(this.islands.map(p=>K(p[0],p[1])));}
+   457→ isIsland(r,c){return this.islandSet().has(K(r,c));}
+   458→ setFleet(seat,ships){if(this.phase==='battle'||this.phase==='finished')throw new RuleError('locked','Бой начался — расстановка закрыта');
+   459→  validateFleet(this.n,this.islands,this.fleetSizes,ships);
+   460→  this.ships[seat]=ships.map(sh=>({cells:sh.map(x=>[x[0],x[1]]),hits:[]}));this.ready[seat]=false;this.version++;}
+   461→ chooseCards(seat,ids){if(!Array.isArray(ids)||ids.length!==3||new Set(ids).size!==3)throw new RuleError('cards','Нужно ровно три разные карты');
+   462→  if(!ids.every(x=>CARD_IDS.indexOf(x)>=0))throw new RuleError('cards','Неизвестная карта');
+   463→  this.cards[seat]=ids.slice();this.version++;this._maybeStart();}
+   464→ markReady(seat){if(!this.ships[seat])throw new RuleError('nofleet','Сначала расставь корабли');this.ready[seat]=true;this.version++;this._maybeStart();}
+   465→ _maybeStart(){const ok=this.ready[0]&&this.ready[1]&&this.cards[0].length===3&&this.cards[1].length===3;
+   466→  if(ok&&this.phase!=='battle'&&this.phase!=='finished'){this.phase='battle';this.turn=this.starter;this._push('both',{t:'start',starter:this.starter});}
+   467→  else if(this.phase==='setup'&&this.ships[0]&&this.ships[1])this.phase='cards';}
+   468→ aliveCells(seat){const s=new Set();if(!this.ships[seat])return s;
+   469→  for(const sh of this.ships[seat]){const hit=new Set(sh.hits.map(p=>K(p[0],p[1])));
+   470→   for(const p of sh.cells)if(!hit.has(K(p[0],p[1])))s.add(K(p[0],p[1]));}return s;}
+   471→ sunkCount(seat){if(!this.ships[seat])return 0;return this.ships[seat].filter(sh=>sh.hits.length===sh.cells.length).length;}
+   472→ allDead(seat){return !!this.ships[seat]&&this.ships[seat].every(sh=>sh.hits.length===sh.cells.length);}
+   473→ _pre(seat){if(this.phase==='finished')throw new RuleError('over','Партия завершена');
+   474→  if(this.phase!=='battle')throw new RuleError('phase','Бой ещё не начался');
+   475→  if(this.turn!==seat)throw new RuleError('turn','Сейчас ход другого капитана');}
+   476→ _spend(seat,id){if(this.cards[seat].indexOf(id)<0)throw new RuleError('nocard','Этой карты у тебя нет');
+   477→  if(this.used[seat].has(id))throw new RuleError('spent','Карта уже использована');this.used[seat].add(id);}
+   478→ _reconOk(seat){if(this.stealthOn[seat])throw new RuleError('stealth','Стелс: разведка недоступна в этот ход');}
+   479→ _damage(t,r,c){for(const sh of this.ships[t]){if(sh.cells.some(p=>p[0]===r&&p[1]===c)){
+   480→   if(sh.hits.some(p=>p[0]===r&&p[1]===c))return 'repeat';
+   481→   if(this.shieldReady[t]){this.shieldReady[t]=false;return 'blocked';}
+   482→   sh.hits.push([r,c]);return sh.hits.length===sh.cells.length?'sunk':'hit';}}return 'miss';}
+   483→ _push(to,ev){this.seq++;const e=Object.assign({seq:this.seq,to:to,round:this.round},ev);this.events.push(e);return e;}
+   484→ _finish(seat,pub,priv){if(pub)this._push('both',pub);if(priv)this._push(seat,priv);this.version++;
+   485→  if(this.allDead(1-seat)){this.winner=seat;this.phase='finished';this._push('both',{t:'win',by:seat});}
+   486→  if(this.stealthOn[seat])this.stealthOn[seat]=false;
+   487→  if(this.turn===this.starter)this.round++;
+   488→  this.turn=1-seat;}
+   489→ fire(seat,r,c){this._pre(seat);
+   490→  if(this.isIsland(r,c))throw new RuleError('island','По острову стрелять нельзя');
+   491→  if(this.shots[seat].has(K(r,c)))throw new RuleError('repeat','Эта клетка уже проверена');
+   492→  const res=this._damage(1-seat,r,c);this.shots[seat].set(K(r,c),res);
+   493→  let sunk=null;
+   494→  if(res==='sunk'){const sh=this.ships[1-seat].find(s=>s.cells.some(p=>p[0]===r&&p[1]===c));sunk=sh.cells.map(x=>x.slice());}
+   495→  this._finish(seat,{t:'fire',by:seat,cell:[r,c],res:res,sunkCells:sunk},null);
+   496→  return{res:res,sunkCells:sunk};}
+   497→ radar(seat,r,c){this._pre(seat);this._reconOk(seat);const size=this.reconSize;const cells=[];
+   498→  for(let i=0;i<size;i++)for(let j=0;j<size;j++)cells.push([r+i,c+j]);
+   499→  if(!cells.every(p=>p[0]>=0&&p[0]<this.n&&p[1]>=0&&p[1]<this.n))throw new RuleError('bounds','Область должна целиком помещаться на поле');
+   500→  this._spend(seat,'radar');
+   501→  const alive=this.aliveCells(1-seat),isl=this.islandSet();
+   502→  const water=cells.filter(p=>!isl.has(K(p[0],p[1])));
+   503→  const count=water.filter(p=>alive.has(K(p[0],p[1]))).length;
+   504→  this._finish(seat,{t:'cardUsed',by:seat,card:'radar'},{t:'radar',by:seat,origin:[r,c],size:size,count:count,cells:water});
+   505→  return{count:count,cells:water};}
+   506→ sonar(seat,axis,index){this._pre(seat);this._reconOk(seat);
+   507→  if(axis!=='row'&&axis!=='col')throw new RuleError('axis','Выбери строку или столбец');
+   508→  if(!(index>=0&&index<this.n))throw new RuleError('bounds','Линия вне поля');
+   509→  this._spend(seat,'sonar');const cells=[];
+   510→  for(let k=0;k<this.n;k++)cells.push(axis==='row'?[index,k]:[k,index]);
+   511→  const alive=this.aliveCells(1-seat),isl=this.islandSet();
+   512→  const water=cells.filter(p=>!isl.has(K(p[0],p[1])));
+   513→  const count=water.filter(p=>alive.has(K(p[0],p[1]))).length;
+   514→  this._finish(seat,{t:'cardUsed',by:seat,card:'sonar'},{t:'sonar',by:seat,axis:axis,index:index,count:count,cells:water});
+   515→  return{count:count,cells:water};}
+   516→ shield(seat){this._pre(seat);this._spend(seat,'shield');this.shieldReady[seat]=true;
+   517→  this._finish(seat,{t:'cardUsed',by:seat,card:'shield'},null);return true;}
+   518→ stealth(seat){this._pre(seat);this._spend(seat,'stealth');this.stealthOn[1-seat]=true;
+   519→  this._finish(seat,{t:'cardUsed',by:seat,card:'stealth'},null);return true;}
+   520→ torpedo(seat,r,c,dir){this._pre(seat);this._spend(seat,'torpedo');
+   521→  const d={up:[-1,0],down:[1,0],left:[0,-1],right:[0,1]}[dir];
+   522→  if(!d)throw new RuleError('dir','Выбери направление');
+   523→  const path=[];let rr=r,cc=c;
+   524→  while(rr>=0&&rr<this.n&&cc>=0&&cc<this.n){path.push([rr,cc]);rr+=d[0];cc+=d[1];}
+   525→  if(!path.length)throw new RuleError('bounds','Торпеда вне поля');
+   526→  const es=this.ships[1-seat];
+   527→  const isE=(a,b)=>es.some(sh=>sh.cells.some(p=>p[0]===a&&p[1]===b));
+   528→  const done=(a,b)=>['hit','sunk','blocked'].indexOf(this.shots[seat].get(K(a,b)))>=0;
+   529→  let first=-1;
+   530→  for(let i=0;i<path.length;i++){const a=path[i][0],b=path[i][1];if(isE(a,b)&&!done(a,b)){first=i;break;}}
+   531→  for(const p of path)if(!this.shots[seat].has(K(p[0],p[1])))this.shots[seat].set(K(p[0],p[1]),'miss');
+   532→  const hits=[];
+   533→  if(first>=0)for(let i=first;i<path.length;i++){const a=path[i][0],b=path[i][1];
+   534→   if(!isE(a,b)||done(a,b))continue;
+   535→   const res=this._damage(1-seat,a,b);if(res==='repeat')continue;
+   536→   this.shots[seat].set(K(a,b),res);hits.push({cell:[a,b],res:res});}
+   537→  this._finish(seat,{t:'torpedo',by:seat,start:[r,c],dir:dir,path:path,contact:first>=0?path[first]:null,hits:hits},null);
+   538→  return{path:path,hits:hits,firstIdx:first};}
+   539→ viewFor(seat){const opp=1-seat;const myShots={},enemyShots={};
+   540→  this.shots[seat].forEach((v,k)=>{myShots[k]=v;});
+   541→  this.shots[opp].forEach((v,k)=>{enemyShots[k]=v;});
+   542→  const v={mode:this.mode,n:this.n,islands:this.islands,fleetSizes:this.fleetSizes,reconSize:this.reconSize,
+   543→   phase:this.phase,turn:this.turn,version:this.version,seq:this.seq,winner:this.winner,round:this.round,
+   544→   starter:this.starter,seat:seat,names:this.names,
+   545→   me:{ships:this.ships[seat],ready:this.ready[seat],cards:this.cards[seat],used:[...this.used[seat]],
+   546→       shieldReady:this.shieldReady[seat],reconBlocked:this.stealthOn[seat]},
+   547→   enemy:{name:this.names[opp],ready:this.ready[opp],cardsChosen:this.cards[opp].length===3,
+   548→       cellsLeft:this.aliveCells(opp).size,shipsTotal:this.fleetSizes.length,
+   549→       shipsSunk:this.sunkCount(opp),cardsUsedCount:this.used[opp].size},
+   550→   myShots:myShots,enemyShots:enemyShots,
+   551→   events:this.events.filter(e=>e.to==='both'||e.to===seat)};
+   552→  if(this.phase==='finished')v.reveal={enemyShips:this.ships[opp],enemyCards:this.cards[opp]};
+   553→  return v;}
+   554→}
+   555→
+   556→/* ======================= БОТ ======================= */
+   557→class Bot{
+   558→ constructor(level,n,islands,fleetSizes,seed){this.level=level;this.n=n;
+   559→  this.isl=new Set(islands.map(p=>K(p[0],p[1])));this.fleetSizes=fleetSizes.slice();
+   560→  this.tried=new Set();this.hunt=[];let s=(seed==null?Date.now():seed)>>>0;
+   561→  this.rng=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+   562→ water(){const o=[];for(let r=0;r<this.n;r++)for(let c=0;c<this.n;c++)if(!this.isl.has(K(r,c)))o.push([r,c]);return o;}
+   563→ pick(a){return a[Math.floor(this.rng()*a.length)];}
+   564→ chooseShot(view){const pool=this.water().filter(p=>!this.tried.has(K(p[0],p[1])));
+   565→  if(!pool.length)return null;
+   566→  if(this.level==='easy')return this.pick(pool);
+   567→  const hunt=this.hunt.filter(p=>!this.tried.has(K(p[0],p[1]))&&!this.isl.has(K(p[0],p[1])));
+   568→  if(hunt.length)return this.pick(hunt);
+   569→  if(this.level==='normal'){const par=pool.filter(p=>(p[0]+p[1])%2===0);return this.pick(par.length?par:pool);}
+   570→  const sizes=this.fleetSizes.slice().sort((a,b)=>b-a).slice(view.enemy.shipsSunk);
+   571→  const blocked=new Set([...this.isl,...this.tried]);
+   572→  const score=new Map(pool.map(p=>[K(p[0],p[1]),0]));
+   573→  for(const L of sizes)for(let r=0;r<this.n;r++)for(let c=0;c<this.n;c++)for(const d of [[0,1],[1,0]]){
+   574→   const cs=[];for(let i=0;i<L;i++)cs.push([r+i*d[0],c+i*d[1]]);
+   575→   if(!cs.every(p=>p[0]>=0&&p[0]<this.n&&p[1]>=0&&p[1]<this.n))continue;
+   576→   if(cs.some(p=>blocked.has(K(p[0],p[1]))))continue;
+   577→   for(const p of cs){const k=K(p[0],p[1]);if(score.has(k))score.set(k,score.get(k)+1);}}
+   578→  let best=-1,list=[];
+   579→  score.forEach((v,k)=>{if(v>best){best=v;list=[k];}else if(v===best)list.push(k);});
+   580→  if(best<=0)return this.pick(pool);
+   581→  return U(this.pick(list));}
+   582→ observe(cell,res){this.tried.add(K(cell[0],cell[1]));
+   583→  if(res==='hit'){const r=cell[0],c=cell[1];
+   584→   for(const d of [[1,0],[-1,0],[0,1],[0,-1]]){const a=r+d[0],b=c+d[1];
+   585→    if(a>=0&&a<this.n&&b>=0&&b<this.n&&!this.isl.has(K(a,b))&&!this.tried.has(K(a,b)))this.hunt.push([a,b]);}}
+   586→  else if(res==='sunk')this.hunt=[];}
+   587→ chooseCards(){if(this.level==='easy')return['radar','shield','sonar'];
+   588→  if(this.level==='normal')return['radar','shield','torpedo'];return['torpedo','shield','radar'];}
+   589→ bestLine(view){const known=[];for(const k in view.myShots)if(view.myShots[k]==='hit')known.push(U(k));
+   590→  if(!known.length)return null;const cnt=new Map();
+   591→  for(const p of known){const kr='r'+p[0],kc='c'+p[1];cnt.set(kr,(cnt.get(kr)||0)+1);cnt.set(kc,(cnt.get(kc)||0)+1);}
+   592→  let best=null,bv=0;cnt.forEach((v,k)=>{if(v>bv){bv=v;best=k;}});
+   593→  if(!best)return null;
+   594→  if(best[0]==='r')return{r:+best.slice(1),c:0,dir:'right'};
+   595→  return{r:0,c:+best.slice(1),dir:'down'};}
+   596→ bestRadar(view){const size=view.reconSize;const heat=new Map();
+   597→  for(let r=0;r<this.n;r++)for(let c=0;c<this.n;c++)heat.set(K(r,c),(this.tried.has(K(r,c))||this.isl.has(K(r,c)))?-1:1);
+   598→  for(const k in view.myShots)if(view.myShots[k]==='hit'){const p=U(k);
+   599→   for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const kk=K(p[0]+dr,p[1]+dc);if(heat.has(kk))heat.set(kk,heat.get(kk)+3);}}
+   600→  let best=null,bs=-1e9;
+   601→  for(let r=0;r<=this.n-size;r++)for(let c=0;c<=this.n-size;c++){let s=0;
+   602→   for(let i=0;i<size;i++)for(let j=0;j<size;j++)s+=heat.get(K(r+i,c+j))||0;
+   603→   if(s>bs){bs=s;best=[r,c];}}
+   604→  return best;}
+   605→ plan(view){const have=id=>view.me.cards.indexOf(id)>=0&&view.me.used.indexOf(id)<0;
+   606→  const canRecon=!view.me.reconBlocked;const shot=this.chooseShot(view);
+   607→  if(this.level!=='easy'&&have('shield')&&!view.me.shieldReady&&view.enemy.cellsLeft<=5&&this.rng()<0.55)return{kind:'shield'};
+   608→  if(have('torpedo')){const l=this.bestLine(view);if(l&&(this.level==='hard'||this.rng()<0.5))return{kind:'torpedo',r:l.r,c:l.c,dir:l.dir};}
+   609→  if(canRecon&&have('radar')&&this.rng()<(this.level==='easy'?0.35:0.5)){const a=this.bestRadar(view);if(a)return{kind:'radar',r:a[0],c:a[1]};}
+   610→  if(canRecon&&have('sonar')&&this.rng()<0.4){const l=this.bestLine(view);
+   611→   if(l)return l.dir==='right'?{kind:'sonar',axis:'row',index:l.r}:{kind:'sonar',axis:'col',index:l.c};
+   612→   return{kind:'sonar',axis:this.rng()<0.5?'row':'col',index:Math.floor(this.rng()*this.n)};}
+   613→  if(have('stealth')&&view.enemy.cardsUsedCount<3&&this.rng()<0.25)return{kind:'stealth'};
+   614→  if(!shot)return{kind:'pass'};
+   615→  return{kind:'fire',r:shot[0],c:shot[1]};}
+   616→}
+   617→
+   618→/* ======================= НАСТРОЙКИ ======================= */
+   619→const $=id=>document.getElementById(id);
+   620→const DEF={wave:1,bubbles:36,glow:1,scale:1,coords:true,fx:true,dpr:2,sound:true};
+   621→function loadJSON(k,f){try{const v=localStorage.getItem(k);return v?JSON.parse(v):f;}catch(e){return f;}}
+   622→function saveJSON(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+   623→let CFG=Object.assign({},DEF,loadJSON('ci:cfg',{}));
+   624→const saveCfg=()=>saveJSON('ci:cfg',CFG);
+   625→
+   626→/* ======================= ЗВУК ======================= */
+   627→const Sound=(()=>{
+   628→ let ac=null,master=null,muted=!CFG.sound,amb=null,ambGain=null;
+   629→ function ensure(){if(ac)return ac;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
+   630→  ac=new AC();master=ac.createGain();master.gain.value=muted?0:.5;master.connect(ac.destination);return ac;}
+   631→ function startAmb(){const a=ensure();if(!a||amb)return;
+   632→  const len=Math.floor(a.sampleRate*4),buf=a.createBuffer(1,len,a.sampleRate),d=buf.getChannelData(0);
+   633→  let last=0;for(let i=0;i<len;i++){const w=Math.random()*2-1;last=last*.97+w*.03;d[i]=last*3.2;}
+   634→  amb=a.createBufferSource();amb.buffer=buf;amb.loop=true;
+   635→  const f=a.createBiquadFilter();f.type='lowpass';f.frequency.value=420;
+   636→  ambGain=a.createGain();ambGain.gain.value=.075;
+   637→  amb.connect(f);f.connect(ambGain);ambGain.connect(master);amb.start();}
+   638→ function tone(fr,dur,type,vol,delay,slide){const a=ensure();if(!a||muted)return;
+   639→  const t0=a.currentTime+(delay||0),o=a.createOscillator(),g=a.createGain();
+   640→  o.type=type||'sine';o.frequency.setValueAtTime(fr,t0);
+   641→  if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(slide,1),t0+dur);
+   642→  g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(vol,t0+.012);
+   643→  g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+   644→  o.connect(g);g.connect(master);o.start(t0);o.stop(t0+dur+.05);}
+   645→ function noise(dur,vol,hp,delay){const a=ensure();if(!a||muted)return;
+   646→  const t0=a.currentTime+(delay||0),len=Math.floor(a.sampleRate*dur);
+   647→  const buf=a.createBuffer(1,len,a.sampleRate),d=buf.getChannelData(0);
+   648→  for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(1-i/len);
+   649→  const s=a.createBufferSource();s.buffer=buf;
+   650→  const f=a.createBiquadFilter();f.type='highpass';f.frequency.value=hp||600;
+   651→  const g=a.createGain();g.gain.setValueAtTime(vol,t0);g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+   652→  s.connect(f);f.connect(g);g.connect(master);s.start(t0);}
+   653→ const S={
+   654→  click:()=>tone(520,.06,'sine',.12,0,700),
+   655→  place:()=>{tone(300,.09,'triangle',.14,0,420);noise(.1,.06,900);},
+   656→  deny:()=>tone(180,.16,'sawtooth',.1,0,110),
+   657→  shoot:()=>{noise(.16,.16,700);tone(880,.1,'triangle',.1,0,240);},
+   658→  splash:()=>{noise(.34,.16,500);tone(420,.2,'sine',.07,.02,180);},
+   659→  hit:()=>{tone(150,.26,'sawtooth',.18,0,60);noise(.24,.18,300);tone(320,.16,'square',.09,.03,140);},
+   660→  sunk:()=>{[220,175,138,110].forEach((f,i)=>tone(f,.34,'sawtooth',.16,i*.1,f*.6));noise(.7,.16,220,.05);},
+   661→  blocked:()=>{tone(1046,.14,'sine',.16);tone(1568,.2,'sine',.12,.06);tone(2093,.24,'triangle',.08,.12);},
+   662→  torpedo:()=>{noise(.75,.13,240);tone(90,.7,'sawtooth',.12,0,180);},
+   663→  radar:()=>[1200,1500,1800].forEach((f,i)=>tone(f,.1,'sine',.1,i*.09)),
+   664→  sonar:()=>{tone(760,.4,'sine',.14,0,1500);tone(1500,.3,'sine',.07,.18,760);},
+   665→  shield:()=>[523,659,784,1046].forEach((f,i)=>tone(f,.24,'triangle',.12,i*.06)),
+   666→  stealth:()=>{noise(.5,.1,1400);tone(1400,.4,'sine',.06,0,300);},
+   667→  turn:()=>{tone(660,.09,'sine',.1);tone(880,.12,'sine',.08,.07);},
+   668→  win:()=>{[523,659,784,1046,1318].forEach((f,i)=>tone(f,.3,'triangle',.18,i*.12));tone(1568,.6,'sine',.16,.62);},
+   669→  lose:()=>[440,392,330,262].forEach((f,i)=>tone(f,.34,'sine',.14,i*.14))};
+   670→ return{
+   671→  unlock(){const a=ensure();if(a&&a.state==='suspended')a.resume();if(a&&!amb)startAmb();},
+   672→  play(n){if(muted)return;try{if(S[n])S[n]();}catch(e){}},
+   673→  setMuted(m){muted=m;if(ac)master.gain.value=m?0:.5;},
+   674→  isMuted:()=>muted};
+   675→})();
+   676→
+   677→/* ======================= ОКЕАН ======================= */
+   678→const Ocean=(()=>{
+   679→ let cv,ctx,w=0,h=0,t=0,raf=0,bub=[],rays=[];
+   680→ function mkB(){return{x:Math.random(),y:1+Math.random()*.6,r:1.5+Math.random()*4.5,sp:.00016+Math.random()*.00042,sw:Math.random()*6.28,amp:6+Math.random()*20};}
+   681→ function sync(){const want=Math.round(CFG.bubbles);
+   682→  while(bub.length<want)bub.push(mkB());
+   683→  while(bub.length>want)bub.pop();}
+   684→ function resize(){if(!cv)return;const d=Math.min(window.devicePixelRatio||1,CFG.dpr);
+   685→  w=window.innerWidth;h=window.innerHeight;
+   686→  cv.width=Math.round(w*d);cv.height=Math.round(h*d);cv.style.width=w+'px';cv.style.height=h+'px';
+   687→  ctx.setTransform(d,0,0,d,0,0);}
+   688→ function draw(){
+   689→  const g=ctx.createLinearGradient(0,0,w*.35,h);
+   690→  g.addColorStop(0,'#0a5570');g.addColorStop(.32,'#07405a');g.addColorStop(.68,'#052a3d');g.addColorStop(1,'#03151f');
+   691→  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+   692→  if(CFG.glow>0){ctx.save();ctx.globalCompositeOperation='screen';
+   693→   for(const r of rays){const cx=(r.x+Math.sin(t*.0016*r.sp*8+r.ph)*.05)*w;
+   694→    const gr=ctx.createLinearGradient(cx,0,cx+w*.12,h*.9);
+   695→    gr.addColorStop(0,'rgba(150,240,255,'+(.16*CFG.glow)+')');
+   696→    gr.addColorStop(.5,'rgba(90,200,230,'+(.05*CFG.glow)+')');
+   697→    gr.addColorStop(1,'rgba(0,0,0,0)');
+   698→    ctx.fillStyle=gr;ctx.beginPath();ctx.moveTo(cx-w*r.wd*.3,0);ctx.lineTo(cx+w*r.wd*.3,0);
+   699→    ctx.lineTo(cx+w*r.wd*1.9,h);ctx.lineTo(cx-w*r.wd*1.5,h);ctx.closePath();ctx.fill();}
+   700→   ctx.restore();}
+   701→  if(CFG.wave>0){ctx.save();ctx.globalCompositeOperation='overlay';
+   702→   for(let i=0;i<5;i++){const yy=h*(.12+i*.19)+Math.sin(t*.006+i)*16*CFG.wave;
+   703→    ctx.strokeStyle='rgba(160,245,255,'+(.05+i*.012)+')';ctx.lineWidth=1.6+i*.5;ctx.beginPath();
+   704→    for(let x=0;x<=w;x+=14){const y=yy+Math.sin(x*.011+t*.011+i*1.7)*11*CFG.wave+Math.sin(x*.031-t*.007)*5*CFG.wave;
+   705→     if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();}
+   706→   ctx.restore();}
+   707→  ctx.save();
+   708→  for(const b of bub){b.y-=b.sp*16;if(b.y<-.08){Object.assign(b,mkB());b.y=1.05;}
+   709→   const x=b.x*w+Math.sin(t*.01+b.sw)*b.amp,y=b.y*h;
+   710→   ctx.beginPath();ctx.arc(x,y,b.r,0,6.2832);ctx.strokeStyle='rgba(190,250,255,.24)';ctx.lineWidth=1;ctx.stroke();
+   711→   ctx.fillStyle='rgba(190,250,255,.06)';ctx.fill();
+   712→   ctx.beginPath();ctx.arc(x-b.r*.3,y-b.r*.3,b.r*.28,0,6.2832);ctx.fillStyle='rgba(255,255,255,.3)';ctx.fill();}
+   713→  ctx.restore();}
+   714→ function loop(){raf=requestAnimationFrame(()=>{t++;draw();loop();});}
+   715→ return{
+   716→  init(canvas){cv=canvas;ctx=cv.getContext('2d');
+   717→   rays=[];for(let i=0;i<5;i++)rays.push({x:(i+.5)/5,ph:Math.random()*6.28,sp:.12+Math.random()*.16,wd:.06+Math.random()*.09});
+   718→   sync();resize();window.addEventListener('resize',resize);if(!raf)loop();},
+   719→  apply(){sync();resize();}};
+   720→})();
+   721→
+   722→/* ======================= ПОЛЕ ======================= */
+   723→const BP={w1:'#bfeef7',w2:'#8fdcea',grid:'rgba(11,60,80,.16)',sand1:'#f6e3b6',sand2:'#dfc189',palm:'#2f8f5b',
+   724→ hull:'#2f6f8f',deck:'#e9f6fb',trim:'#ffc247',hit:'#ff4d5e',miss:'#7fa8bb',sunk:'#8b2233',block:'#ffc247',aim:'#38e1ff'};
+   725→class BoardView{
+   726→ constructor(canvas,o){this.cv=canvas;this.ctx=canvas.getContext('2d');
+   727→  this.n=o.n;this.islands=o.islands||[];this.cell=o.cell||52;this.pad=14;
+   728→  this.ships=null;this.shots={};this.enemyShots={};this.hover=null;this.aim=null;this.reconCells=null;
+   729→  this.preview=null;this.previewBad=false;this.torpedoPath=null;this.dim=false;this.effects=[];
+   730→  this.onCell=o.onCell||null;this.onHover=o.onHover||null;this.onUp=o.onUp||null;this.onFrame=o.onFrame||null;
+   731→  this._t=0;this._raf=0;this.dpr=1;this.resize();this.bind();this.loop();}
+   732→ bind(){this._mv=e=>{const p=this.pos(e);this.hover=p;if(this.onHover)this.onHover(p);};
+   733→  this._lv=()=>{this.hover=null;if(this.onHover)this.onHover(null);};
+   734→  this._dn=e=>{e.preventDefault();try{this.cv.setPointerCapture(e.pointerId);}catch(x){}
+   735→   const p=this.pos(e);if(p&&this.onCell)this.onCell(p.r,p.c);};
+   736→  this._up=e=>{const p=this.pos(e);if(this.onUp)this.onUp(p);};
+   737→  this.cv.addEventListener('pointermove',this._mv);this.cv.addEventListener('pointerleave',this._lv);
+   738→  this.cv.addEventListener('pointerdown',this._dn);this.cv.addEventListener('pointerup',this._up);
+   739→  this.cv.addEventListener('pointercancel',this._up);}
+   740→ destroy(){cancelAnimationFrame(this._raf);this._raf=0;
+   741→  this.cv.removeEventListener('pointermove',this._mv);this.cv.removeEventListener('pointerleave',this._lv);
+   742→  this.cv.removeEventListener('pointerdown',this._dn);this.cv.removeEventListener('pointerup',this._up);
+   743→  this.cv.removeEventListener('pointercancel',this._up);}
+   744→ pos(e){const r=this.cv.getBoundingClientRect();if(!r.width)return null;
+   745→  const x=(e.clientX-r.left)*(this.size/r.width)-this.pad,y=(e.clientY-r.top)*(this.size/r.height)-this.pad;
+   746→  const c=Math.floor(x/this.cell),rr=Math.floor(y/this.cell);
+   747→  if(rr<0||rr>=this.n||c<0||c>=this.n)return null;return{r:rr,c:c};}
+   748→ resize(){this.size=this.n*this.cell+this.pad*2;this.dpr=Math.min(window.devicePixelRatio||1,CFG.dpr);
+   749→  this.cv.width=Math.round(this.size*this.dpr);this.cv.height=Math.round(this.size*this.dpr);
+   750→  this.cv.style.width=this.size+'px';this.cv.style.height=this.size+'px';
+   751→  this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);}
+   752→ setCell(px){if(px===this.cell)return;this.cell=px;this.resize();}
+   753→ xy(r,c){return[this.pad+c*this.cell,this.pad+r*this.cell];}
+   754→ center(r,c){const p=this.xy(r,c);return[p[0]+this.cell/2,p[1]+this.cell/2];}
+   755→ addEffect(e){if(!CFG.fx)return;e.t0=this._t;this.effects.push(e);}
+   756→ loop(){this._raf=requestAnimationFrame(()=>{this._t++;this.draw();if(this.onFrame)this.onFrame();this.loop();});}
+   757→ rr(x,y,w,h,r){const c=this.ctx;c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);
+   758→  c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+   759→ draw(){const ctx=this.ctx,S=this.size,C=this.cell,P=this.pad,t=this._t;
+   760→  ctx.clearRect(0,0,S,S);
+   761→  const g=ctx.createLinearGradient(0,0,S,S);g.addColorStop(0,BP.w1);g.addColorStop(1,BP.w2);
+   762→  ctx.fillStyle=g;this.rr(0,0,S,S,14);ctx.fill();
+   763→  ctx.save();this.rr(P,P,this.n*C,this.n*C,10);ctx.clip();ctx.globalAlpha=.5;
+   764→  for(let i=0;i<4;i++){ctx.strokeStyle='rgba(255,255,255,'+(.16-i*.03)+')';ctx.lineWidth=1.2;ctx.beginPath();
+   765→   for(let x=P;x<=P+this.n*C;x+=8){const y=P+this.n*C*(.18+i*.22)+Math.sin(x*.05+t*.03+i*2)*3.2*CFG.wave;
+   766→    if(x===P)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();}
+   767→  ctx.restore();
+   768→  ctx.strokeStyle=BP.grid;ctx.lineWidth=1;
+   769→  for(let i=0;i<=this.n;i++){const v=P+i*C;
+   770→   ctx.beginPath();ctx.moveTo(v,P);ctx.lineTo(v,P+this.n*C);ctx.stroke();
+   771→   ctx.beginPath();ctx.moveTo(P,v);ctx.lineTo(P+this.n*C,v);ctx.stroke();}
+   772→  if(this.reconCells){const pulse=.16+Math.sin(t*.08)*.06;
+   773→   for(const p of this.reconCells){const q=this.xy(p[0],p[1]);
+   774→    ctx.fillStyle='rgba(185,140,255,'+pulse+')';ctx.fillRect(q[0]+1,q[1]+1,C-2,C-2);
+   775→    ctx.strokeStyle='rgba(185,140,255,.6)';ctx.lineWidth=1.5;ctx.strokeRect(q[0]+1.5,q[1]+1.5,C-3,C-3);}}
+   776→  for(const p of this.islands)this.island(p[0],p[1]);
+   777→  if(this.ships)for(const sh of this.ships)this.ship(sh);
+   778→  for(const k in this.shots){const p=U(k);this.mark(p[0],p[1],this.shots[k],false);}
+   779→  for(const k in this.enemyShots){const p=U(k);this.mark(p[0],p[1],this.enemyShots[k],true);}
+   780→  if(this.preview)for(const p of this.preview){
+   781→   if(p[0]<0||p[1]<0||p[0]>=this.n||p[1]>=this.n)continue;
+   782→   const q=this.xy(p[0],p[1]);
+   783→   ctx.fillStyle=this.previewBad?'rgba(255,77,94,.34)':'rgba(61,220,151,.34)';ctx.fillRect(q[0]+2,q[1]+2,C-4,C-4);
+   784→   ctx.strokeStyle=this.previewBad?'#ff4d5e':'#2fa96b';ctx.lineWidth=2;ctx.strokeRect(q[0]+3,q[1]+3,C-6,C-6);}
+   785→  if(this.torpedoPath){ctx.save();ctx.setLineDash([7,6]);ctx.lineDashOffset=-t*.6;
+   786→   ctx.strokeStyle='rgba(255,93,115,.85)';ctx.lineWidth=3;ctx.beginPath();
+   787→   this.torpedoPath.forEach((p,i)=>{const q=this.center(p[0],p[1]);if(i)ctx.lineTo(q[0],q[1]);else ctx.moveTo(q[0],q[1]);});
+   788→   ctx.stroke();ctx.restore();}
+   789→  if(this.hover&&!this.aim&&!this.dim){const q=this.xy(this.hover.r,this.hover.c);
+   790→   ctx.strokeStyle='rgba(11,34,48,.4)';ctx.lineWidth=2;ctx.strokeRect(q[0]+2,q[1]+2,C-4,C-4);}
+   791→  if(this.aim){const q=this.center(this.aim.r,this.aim.c),rr=C*.42+Math.sin(t*.1)*2;
+   792→   ctx.save();ctx.strokeStyle=BP.aim;ctx.lineWidth=2.6;ctx.shadowColor=BP.aim;ctx.shadowBlur=12;
+   793→   ctx.beginPath();ctx.arc(q[0],q[1],rr,0,6.2832);ctx.stroke();ctx.beginPath();
+   794→   ctx.moveTo(q[0]-rr-6,q[1]);ctx.lineTo(q[0]-rr+4,q[1]);ctx.moveTo(q[0]+rr-4,q[1]);ctx.lineTo(q[0]+rr+6,q[1]);
+   795→   ctx.moveTo(q[0],q[1]-rr-6);ctx.lineTo(q[0],q[1]-rr+4);ctx.moveTo(q[0],q[1]+rr-4);ctx.lineTo(q[0],q[1]+rr+6);
+   796→   ctx.stroke();ctx.restore();}
+   797→  this.effects=this.effects.filter(e=>this.effect(e));
+   798→  if(this.dim){ctx.fillStyle='rgba(3,21,31,.45)';this.rr(0,0,S,S,14);ctx.fill();}
+   799→  if(CFG.coords){ctx.fillStyle='rgba(11,60,80,.5)';ctx.font='700 '+Math.max(8,C*.17)+'px Nunito,system-ui,sans-serif';
+   800→   ctx.textAlign='center';ctx.textBaseline='middle';
+   801→   for(let i=0;i<this.n;i++){const q=this.xy(0,i);ctx.fillText(LET[i],q[0]+C/2,P*.55);
+   802→    const q2=this.xy(i,0);ctx.fillText(String(i+1),P*.5,q2[1]+C/2);}}}
+   803→ island(r,c){const ctx=this.ctx,C=this.cell,q=this.xy(r,c),cx=q[0]+C/2,cy=q[1]+C/2;
+   804→  ctx.save();
+   805→  ctx.fillStyle='rgba(10,60,80,.16)';ctx.beginPath();ctx.ellipse(cx,cy+C*.06,C*.36,C*.28,0,0,6.2832);ctx.fill();
+   806→  const g=ctx.createRadialGradient(cx-C*.1,cy-C*.12,C*.05,cx,cy,C*.38);
+   807→  g.addColorStop(0,BP.sand1);g.addColorStop(1,BP.sand2);
+   808→  ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(cx,cy,C*.34,C*.27,0,0,6.2832);ctx.fill();
+   809→  ctx.strokeStyle='rgba(150,110,50,.35)';ctx.lineWidth=1.2;ctx.stroke();
+   810→  ctx.strokeStyle='#8a5a2b';ctx.lineWidth=Math.max(1.6,C*.045);ctx.beginPath();
+   811→  ctx.moveTo(cx,cy+C*.06);ctx.quadraticCurveTo(cx+C*.04,cy-C*.08,cx+C*.02,cy-C*.16);ctx.stroke();
+   812→  ctx.fillStyle=BP.palm;
+   813→  for(let i=0;i<5;i++){const a=-Math.PI/2+(i-2)*.55;ctx.beginPath();
+   814→   ctx.ellipse(cx+C*.02+Math.cos(a)*C*.11,cy-C*.16+Math.sin(a)*C*.07,C*.1,C*.038,a,0,6.2832);ctx.fill();}
+   815→  ctx.restore();}
+   816→ hullPath(x,y,w,h,horiz){const ctx=this.ctx,r=Math.min(w,h)*.42;ctx.beginPath();
+   817→  if(horiz){ctx.moveTo(x+r*.4,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y+h/2,x+w-r,y+h);
+   818→   ctx.lineTo(x+r*.4,y+h);ctx.quadraticCurveTo(x,y+h/2,x+r*.4,y);}
+   819→  else{ctx.moveTo(x,y+r*.4);ctx.lineTo(x,y+h-r);ctx.quadraticCurveTo(x+w/2,y+h,x+w,y+h-r);
+   820→   ctx.lineTo(x+w,y+r*.4);ctx.quadraticCurveTo(x+w/2,y,x,y+r*.4);}ctx.closePath();}
+   821→ ship(sh){const ctx=this.ctx,C=this.cell,cells=sh.cells;
+   822→  if(!cells||!cells.length)return;
+   823→  const hits=new Set((sh.hits||[]).map(p=>K(p[0],p[1])));
+   824→  const dead=cells.length===hits.size;
+   825→  const horiz=cells.length>1&&cells[0][0]===cells[1][0];
+   826→  const q0=this.xy(cells[0][0],cells[0][1]),len=cells.length;
+   827→  const w=horiz?len*C:C,h=horiz?C:len*C,ins=C*.16;
+   828→  ctx.save();
+   829→  if(dead){ctx.globalAlpha=.62;const cx=q0[0]+w/2,cy=q0[1]+h/2;ctx.translate(cx,cy);ctx.rotate(.06);ctx.translate(-cx,-cy);}
+   830→  ctx.fillStyle='rgba(8,40,56,.22)';this.hullPath(q0[0]+ins+2,q0[1]+ins+3,w-ins*2,h-ins*2,horiz);ctx.fill();
+   831→  const g=ctx.createLinearGradient(q0[0],q0[1],q0[0]+(horiz?0:w),q0[1]+(horiz?h:0));
+   832→  g.addColorStop(0,dead?'#6b3a44':'#3d7f9f');g.addColorStop(.5,dead?'#8b2233':BP.hull);g.addColorStop(1,dead?'#5a2030':'#245a76');
+   833→  ctx.fillStyle=g;this.hullPath(q0[0]+ins,q0[1]+ins,w-ins*2,h-ins*2,horiz);ctx.fill();
+   834→  ctx.strokeStyle=dead?'rgba(255,180,190,.5)':'rgba(233,246,251,.75)';ctx.lineWidth=Math.max(1.2,C*.035);ctx.stroke();
+   835→  ctx.fillStyle=dead?'rgba(255,220,225,.25)':BP.deck;
+   836→  this.hullPath(q0[0]+ins*1.7,q0[1]+ins*1.7,w-ins*3.4,h-ins*3.4,horiz);ctx.fill();
+   837→  const cx=q0[0]+w/2,cy=q0[1]+h/2;ctx.fillStyle=dead?'#c98a94':BP.trim;
+   838→  if(horiz)ctx.fillRect(cx-C*.22,cy-C*.13,C*.44,C*.26);else ctx.fillRect(cx-C*.13,cy-C*.22,C*.26,C*.44);
+   839→  ctx.fillStyle=dead?'rgba(255,255,255,.35)':'#0d3a52';
+   840→  for(const p of cells){if(hits.has(K(p[0],p[1])))continue;const s=this.center(p[0],p[1]);
+   841→   ctx.beginPath();ctx.arc(s[0],s[1],C*.055,0,6.2832);ctx.fill();}
+   842→  if(!dead){const b=this.center(cells[0][0],cells[0][1]);
+   843→   ctx.strokeStyle='#e9f6fb';ctx.lineWidth=Math.max(1,C*.03);ctx.beginPath();
+   844→   ctx.moveTo(b[0],b[1]-C*.02);ctx.lineTo(b[0],b[1]-C*.2);ctx.stroke();
+   845→   ctx.fillStyle='#ff5d73';ctx.beginPath();ctx.moveTo(b[0],b[1]-C*.2);
+   846→   ctx.lineTo(b[0]+C*.14,b[1]-C*.15);ctx.lineTo(b[0],b[1]-C*.1);ctx.closePath();ctx.fill();}
+   847→  ctx.restore();}
+   848→ mark(r,c,res,incoming){const ctx=this.ctx,C=this.cell,q=this.center(r,c),x=q[0],y=q[1];
+   849→  ctx.save();
+   850→  if(res==='miss'){ctx.strokeStyle=incoming?'rgba(90,130,150,.75)':BP.miss;ctx.lineWidth=Math.max(1.6,C*.05);
+   851→   ctx.beginPath();ctx.arc(x,y,C*.13,0,6.2832);ctx.stroke();
+   852→   ctx.globalAlpha=.35;ctx.beginPath();ctx.arc(x,y,C*.2,0,6.2832);ctx.stroke();}
+   853→  else if(res==='blocked'){ctx.strokeStyle=BP.block;ctx.lineWidth=Math.max(2,C*.06);ctx.shadowColor=BP.block;ctx.shadowBlur=8;
+   854→   ctx.beginPath();ctx.moveTo(x,y-C*.2);ctx.lineTo(x+C*.17,y-C*.1);ctx.lineTo(x+C*.17,y+C*.08);
+   855→   ctx.quadraticCurveTo(x,y+C*.24,x-C*.17,y+C*.08);ctx.lineTo(x-C*.17,y-C*.1);ctx.closePath();ctx.stroke();}
+   856→  else if(res==='hit'||res==='sunk'){ctx.strokeStyle=res==='sunk'?BP.sunk:BP.hit;
+   857→   ctx.lineWidth=Math.max(2.2,C*.075);ctx.lineCap='round';if(incoming)ctx.globalAlpha=.9;
+   858→   const d=C*.17;ctx.beginPath();ctx.moveTo(x-d,y-d);ctx.lineTo(x+d,y+d);ctx.moveTo(x+d,y-d);ctx.lineTo(x-d,y+d);ctx.stroke();
+   859→   if(res==='sunk'){ctx.globalAlpha=.5;ctx.beginPath();ctx.arc(x,y,C*.28,0,6.2832);ctx.stroke();}}
+   860→  ctx.restore();}
+   861→ effect(e){const ctx=this.ctx,C=this.cell,age=this._t-e.t0;
+   862→  if(e.kind==='splash'){const life=42;if(age>life)return false;const p=age/life,q=this.center(e.r,e.c);
+   863→   ctx.save();ctx.globalAlpha=1-p;ctx.strokeStyle=e.color||'#fff';ctx.lineWidth=3*(1-p)+1;
+   864→   ctx.beginPath();ctx.arc(q[0],q[1],C*(.15+p*.55),0,6.2832);ctx.stroke();
+   865→   for(let i=0;i<7;i++){const a=i/7*6.2832,d=C*(.2+p*.5);ctx.globalAlpha=(1-p)*.8;ctx.fillStyle=e.color||'#fff';
+   866→    ctx.beginPath();ctx.arc(q[0]+Math.cos(a)*d,q[1]+Math.sin(a)*d-p*10,2.4*(1-p)+.6,0,6.2832);ctx.fill();}
+   867→   ctx.restore();return true;}
+   868→  if(e.kind==='shell'){const life=26;if(age>life)return false;const p=age/life,q=this.center(e.r,e.c);
+   869→   const x=q[0],y=-20+(q[1]+20)*p-Math.sin(p*Math.PI)*40;
+   870→   ctx.save();ctx.fillStyle='#ffe08a';ctx.shadowColor='#ffc247';ctx.shadowBlur=14;
+   871→   ctx.beginPath();ctx.arc(x,y,4.5,0,6.2832);ctx.fill();ctx.restore();return true;}
+   872→  if(e.kind==='torpedo'){const life=Math.max(30,e.path.length*7);if(age>life)return false;
+   873→   const p=age/life,idx=Math.min(e.path.length-1,Math.floor(p*e.path.length));
+   874→   ctx.save();ctx.strokeStyle='rgba(255,93,115,.5)';ctx.lineWidth=4;ctx.setLineDash([6,5]);ctx.lineDashOffset=-this._t;
+   875→   ctx.beginPath();e.path.slice(0,idx+1).forEach((c,i)=>{const q=this.center(c[0],c[1]);if(i)ctx.lineTo(q[0],q[1]);else ctx.moveTo(q[0],q[1]);});
+   876→   ctx.stroke();ctx.setLineDash([]);
+   877→   const h=this.center(e.path[idx][0],e.path[idx][1]);
+   878→   ctx.fillStyle='#ff5d73';ctx.shadowColor='#ff5d73';ctx.shadowBlur=16;
+   879→   ctx.beginPath();ctx.ellipse(h[0],h[1],7,4.5,0,0,6.2832);ctx.fill();
+   880→   for(let i=0;i<5;i++){const j=Math.max(0,idx-i-1),b=this.center(e.path[j][0],e.path[j][1]);
+   881→    ctx.globalAlpha=.3-i*.05;ctx.fillStyle='#dffaff';
+   882→    ctx.beginPath();ctx.arc(b[0]+Math.sin(this._t*.3+i)*3,b[1],3-i*.4,0,6.2832);ctx.fill();}
+   883→   ctx.restore();return true;}
+   884→  if(e.kind==='scan'){const life=48;if(age>life)return false;const p=age/life;
+   885→   ctx.save();ctx.globalAlpha=(1-p)*.85;ctx.strokeStyle=e.color||'#38e1ff';ctx.lineWidth=2;
+   886→   for(const c of e.cells){const q=this.xy(c[0],c[1]);ctx.strokeRect(q[0]+2,q[1]+2,C-4,C-4);}
+   887→   ctx.globalAlpha=(1-p)*.5;ctx.fillStyle=e.color||'#38e1ff';
+   888→   const sw=Math.min(this.n-1,Math.floor(p*this.n));
+   889→   if(e.axis==='col'){const q=this.xy(0,sw);ctx.fillRect(q[0],this.pad,3,this.n*C);}
+   890→   else{const q=this.xy(sw,0);ctx.fillRect(this.pad,q[1],this.n*C,3);}
+   891→   ctx.restore();return true;}
+   892→  if(e.kind==='shieldwave'){const life=40;if(age>life)return false;const p=age/life,q=this.center(e.r,e.c);
+   893→   ctx.save();ctx.globalAlpha=1-p;ctx.strokeStyle='#ffc247';ctx.lineWidth=4*(1-p)+1;
+   894→   ctx.shadowColor='#ffc247';ctx.shadowBlur=16;
+   895→   ctx.beginPath();ctx.arc(q[0],q[1],C*(.2+p*1.6),0,6.2832);ctx.stroke();ctx.restore();return true;}
+   896→  if(e.kind==='sink'){const life=60;if(age>life)return false;const p=age/life;
+   897→   ctx.save();ctx.globalAlpha=(1-p)*.9;ctx.fillStyle='rgba(220,250,255,.75)';
+   898→   for(const c of e.cells){const q=this.center(c[0],c[1]);
+   899→    for(let i=0;i<4;i++){const off=(p*40+i*9)%40;
+   900→     ctx.beginPath();ctx.arc(q[0]+Math.sin(i*2+this._t*.1)*6,q[1]-off*.6,2.6-i*.4,0,6.2832);ctx.fill();}}
+   901→   ctx.restore();return true;}
+   902→  return false;}
+   903→}
+   904→
+   905→/* ======================= ПРИЛОЖЕНИЕ ======================= */
+   906→const App={mode:'simple',opp:'bot',level:'easy',names:['Капитан','Капитан 2'],
+   907→ m:null,bot:null,seat:0,viewSeat:0,tab:'enemy',aim:null,card:null,dir:'right',axis:'row',
+   908→ setup:{ships:[],sel:0,dir:'h',drag:null},pick:[],boards:{},busy:false,over:false};
+   909→
+   910→function toast(msg,kind){const t=document.createElement('div');t.className='toast'+(kind?' '+kind:'');
+   911→ t.textContent=msg;$('toasts').appendChild(t);
+   912→ setTimeout(()=>{t.style.transition='opacity .3s';t.style.opacity='0';setTimeout(()=>t.remove(),320);},2400);}
+   913→function destroyBoards(){for(const k in App.boards)App.boards[k].destroy();App.boards={};}
+   914→function show(name){['Menu','Setup','Cards','Battle'].forEach(s=>$('scr'+s).classList.toggle('on',s===name));
+   915→ destroyBoards();window.scrollTo({top:0,behavior:'smooth'});}
+   916→function fitCell(n){const wrapW=Math.min(window.innerWidth-46,600);
+   917→ const availH=Math.max(window.innerHeight-(window.innerWidth<980?340:280),230);
+   918→ let c=Math.floor(Math.min((wrapW-28)/n,(availH-28)/n,n===6?74:60));
+   919→ c=Math.max(c,n===6?32:24);
+   920→ c=Math.round(c*CFG.scale);
+   921→ return Math.max(20,Math.min(c,Math.floor((wrapW-28)/n)));}
+   922→function refit(){for(const k in App.boards)App.boards[k].setCell(fitCell(App.boards[k].n));}
+   923→window.addEventListener('resize',refit);
+   924→
+   925→/* --- меню --- */
+   926→function renderMenu(){
+   927→ $('modeGrid').innerHTML='';
+   928→ Object.keys(MODES).forEach(id=>{const m=MODES[id];
+   929→  const b=document.createElement('button');b.className='mcard'+(App.mode===id?' sel':'');b.type='button';
+   930→  b.innerHTML='<div class="mck">✓</div><div class="mct">'+(id==='simple'?'🏝':'🌊')+' '+m.name+'</div><div class="mcs">'+m.label+'</div><div class="mcd">'+m.desc+'</div>';
+   931→  b.onclick=()=>{App.mode=id;Sound.play('click');renderMenu();};
+   932→  $('modeGrid').appendChild(b);});
+   933→ const strip=$('rulesStrip');strip.innerHTML='';
+   934→ CARD_IDS.forEach(id=>{const c=CARDS[id];const d=document.createElement('div');d.className='tile';
+   935→  d.innerHTML='<b style="color:'+c.hue+'">'+c.icon+' '+c.name+'</b><span>'+c.desc+'</span>';strip.appendChild(d);});
+   936→ const help=$('helpTiles');help.innerHTML='';
+   937→ [['🎯','Выстрел','Одна клетка за ход. Очередь переходит даже при попадании.'],
+   938→  ['🚀','Торпеда','Идёт до края поля сквозь острова, бьёт каждую клетку корабля на линии.'],
+   939→  ['🛡','Щит','Гасит одно попадание целиком, клетка остаётся целой.'],
+   940→  ['🌫','Стелс','Запрещает сопернику радар и эхолот на один его ход.'],
+   941→  ['📡','Разведка','Показывает только число целых клеток, без координат.'],
+   942→  ['🏝','Острова','Одинаковы для обоих. Ставить корабли и стрелять туда нельзя.']]
+   943→ .forEach(t=>{const d=document.createElement('div');d.className='tile';
+   944→  d.innerHTML='<b>'+t[0]+' '+t[1]+'</b><span>'+t[2]+'</span>';help.appendChild(d);});
+   945→ $('name2Wrap').hidden=App.opp!=='local';
+   946→ const saved=loadJSON('ci:save',null);
+   947→ $('continueWrap').hidden=!saved;
+   948→ if(saved)$('btnContinue').textContent='↩ Продолжить: '+(MODES[saved.m.mode]||MODES.simple).label+' · круг '+saved.m.round;
+   949→}
+   950→$('oppSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+   951→ [...$('oppSeg').children].forEach(x=>x.classList.remove('on'));b.classList.add('on');
+   952→ App.opp=b.dataset.opp;if(b.dataset.lvl)App.level=b.dataset.lvl;
+   953→ Sound.play('click');renderMenu();});
+   954→
+   955→function newMatch(starter){
+   956→ App.names=[($('menuName1').value||'Капитан 1').trim().slice(0,14),
+   957→            App.opp==='bot'?'Компьютер':($('menuName2').value||'Капитан 2').trim().slice(0,14)];
+   958→ App.m=new Match(App.mode,App.names);
+   959→ App.m.starter=starter==null?(Math.random()<.5?0:1):starter;
+   960→ App.bot=App.opp==='bot'?new Bot(App.level,App.m.n,App.m.islands,App.m.fleetSizes):null;
+   961→ App.seat=0;App.viewSeat=0;App.over=false;App.card=null;App.aim=null;
+   962→ enterSetup();}
+   963→
+   964→/* --- расстановка --- */
+   965→function enterSetup(){
+   966→ App.setup={ships:(App.m.ships[App.seat]?App.m.ships[App.seat].map(s=>s.cells.map(x=>x.slice())):[]),sel:0,dir:'h',drag:null};
+   967→ show('Setup');
+   968→ $('setupTitle').textContent=App.names[App.seat];
+   969→ $('setupSub').innerHTML='<i class="dot"></i><span>'+MODES[App.mode].label+'</span>';
+   970→ App.boards.setup=new BoardView($('setupCanvas'),{n:App.m.n,islands:App.m.islands,cell:fitCell(App.m.n),
+   971→  onCell:setupClick,onHover:setupHover,onUp:setupUp});
+   972→ renderSetup();}
+   973→function renderSetup(){
+   974→ const bv=App.boards.setup;if(!bv)return;
+   975→ bv.ships=App.setup.ships.map(c=>({cells:c,hits:[]}));
+   976→ const tray=$('tray');tray.innerHTML='';
+   977→ App.m.fleetSizes.forEach((len,i)=>{
+   978→  const done=!!App.setup.ships[i];
+   979→  const b=document.createElement('button');b.type='button';
+   980→  b.className='sbtn'+(App.setup.sel===i?' sel':'')+(done?' done':'');
+   981→  b.innerHTML='<span class="smini">'+'<i></i>'.repeat(len)+'</span>'+(SHIPNAME[len]||len)+' · '+len;
+   982→  b.onclick=()=>{App.setup.sel=i;Sound.play('click');
+   983→   if(done){const cs=App.setup.ships[i];App.setup.dir=cs.length>1&&cs[0][0]===cs[1][0]?'h':'v';}
+   984→   renderSetup();};
+   985→  tray.appendChild(b);});
+   986→ const all=App.setup.ships.filter(Boolean).length===App.m.fleetSizes.length;
+   987→ $('btnReady').disabled=!all;
+   988→ setHint(all?'Флот готов. Нажми «Готов».':'Выбери корабль снизу и нажми клетку. Поставленный можно тащить пальцем.',all?'good':'');}
+   989→function setHint(msg,kind){const h=$('setupHint');h.className='hint'+(kind?' '+kind:'');h.textContent=msg;}
+   990→function previewFor(r,c,len,dir){const cs=shipCells(r,c,len,dir);
+   991→ const others=App.setup.ships.filter((s,i)=>s&&i!==App.setup.sel);
+   992→ const err=placementOk(App.m.n,App.m.islands,others,cs);
+   993→ const bv=App.boards.setup;bv.preview=cs;bv.previewBad=!!err;return err;}
+   994→function setupHover(p){const bv=App.boards.setup;if(!bv)return;
+   995→ if(!p){bv.preview=null;return;}
+   996→ const idx=App.setup.drag?App.setup.drag.idx:App.setup.sel;
+   997→ const len=App.setup.drag?App.setup.drag.len:App.m.fleetSizes[idx];
+   998→ if(len==null){bv.preview=null;return;}
+   999→ App.setup.sel=idx;previewFor(p.r,p.c,len,App.setup.dir);}
+  1000→function setupClick(r,c){
+  1001→ const hit=App.setup.ships.findIndex(cs=>cs&&cs.some(p=>p[0]===r&&p[1]===c));
+  1002→ if(hit>=0){const cs=App.setup.ships[hit];
+  1003→  App.setup.drag={idx:hit,len:cs.length,orig:cs.map(x=>x.slice())};
+  1004→  App.setup.dir=cs.length>1&&cs[0][0]===cs[1][0]?'h':'v';
+  1005→  App.setup.ships[hit]=null;App.setup.sel=hit;Sound.play('click');renderSetup();return;}
+  1006→ tryPlace(r,c);}
+  1007→function setupUp(p){
+  1008→ if(!App.setup.drag)return;
+  1009→ const d=App.setup.drag;App.setup.drag=null;
+  1010→ if(!p||!tryPlace(p.r,p.c,true)){App.setup.ships[d.idx]=d.orig;setHint('Так нельзя — вернул на прежнее место.','bad');Sound.play('deny');}
+  1011→ App.boards.setup.preview=null;renderSetup();}
+  1012→function tryPlace(r,c,silent){
+  1013→ const idx=App.setup.sel,len=App.setup.drag?App.setup.drag.len:App.m.fleetSizes[idx];
+  1014→ if(len==null)return false;
+  1015→ const cs=shipCells(r,c,len,App.setup.dir);
+  1016→ const others=App.setup.ships.filter((s,i)=>s&&i!==idx);
+  1017→ const err=placementOk(App.m.n,App.m.islands,others,cs);
+  1018→ if(err){if(!silent){setHint(PLACE_MSG[err],'bad');Sound.play('deny');}return false;}
+  1019→ App.setup.ships[idx]=cs;Sound.play('place');
+  1020→ let next=-1;for(let i=0;i<App.m.fleetSizes.length;i++)if(!App.setup.ships[i]){next=i;break;}
+  1021→ App.setup.sel=next>=0?next:idx;
+  1022→ renderSetup();return true;}
+  1023→$('btnRotate').onclick=()=>{App.setup.dir=App.setup.dir==='h'?'v':'h';Sound.play('click');
+  1024→ const bv=App.boards.setup;if(bv&&bv.hover)setupHover(bv.hover);
+  1025→ setHint('Поворот: '+(App.setup.dir==='h'?'горизонтально':'вертикально'));};
+  1026→$('btnAuto').onclick=()=>{try{App.setup.ships=randomFleet(App.m.n,App.m.islands,App.m.fleetSizes);
+  1027→ App.setup.sel=0;Sound.play('place');renderSetup();}catch(e){toast('Не удалось расставить','bad');}};
+  1028→$('btnClear').onclick=()=>{App.setup.ships=[];App.setup.sel=0;Sound.play('click');renderSetup();};
+  1029→$('btnReady').onclick=()=>{
+  1030→ try{App.m.setFleet(App.seat,App.setup.ships);App.m.markReady(App.seat);}
+  1031→ catch(e){setHint(e.message,'bad');Sound.play('deny');return;}
+  1032→ Sound.play('shield');
+  1033→ if(App.opp==='bot'){
+  1034→  App.m.setFleet(1,randomFleet(App.m.n,App.m.islands,App.m.fleetSizes));App.m.markReady(1);
+  1035→  enterCards();
+  1036→ }else if(App.seat===0){App.seat=1;handoff(App.names[1],enterSetup);}
+  1037→ else{App.seat=0;handoff(App.names[0],enterCards);}};
+  1038→
+  1039→/* --- выбор карт --- */
+  1040→function enterCards(){App.pick=[];show('Cards');
+  1041→ $('cardsTitle').textContent=App.names[App.seat]+', выбери три карты';
+  1042→ renderCards();}
+  1043→function renderCards(){
+  1044→ const g=$('cardsGrid');g.innerHTML='';
+  1045→ CARD_IDS.forEach(id=>{const c=CARDS[id];
+  1046→  const b=document.createElement('button');b.type='button';
+  1047→  b.className='card'+(App.pick.indexOf(id)>=0?' sel':'');b.style.setProperty('--ch',c.hue);
+  1048→  b.innerHTML='<div class="cicon">'+c.icon+'</div><div class="cname">'+c.name+'</div><div class="ctag">'+c.tag+'</div><div class="cdesc">'+c.desc+'</div>';
+  1049→  b.onclick=()=>{const i=App.pick.indexOf(id);
+  1050→   if(i>=0)App.pick.splice(i,1);
+  1051→   else{if(App.pick.length>=3){toast('Можно взять только три карты','bad');Sound.play('deny');return;}App.pick.push(id);}
+  1052→   Sound.play('click');renderCards();};
+  1053→  g.appendChild(b);});
+  1054→ $('cardsCount').textContent='Выбрано '+App.pick.length+' / 3';
+  1055→ $('btnCardsOk').disabled=App.pick.length!==3;}
+  1056→$('btnCardsOk').onclick=()=>{
+  1057→ try{App.m.chooseCards(App.seat,App.pick);}catch(e){toast(e.message,'bad');Sound.play('deny');return;}
+  1058→ Sound.play('shield');
+  1059→ if(App.opp==='bot'){App.m.chooseCards(1,App.bot.chooseCards());enterBattle();}
+  1060→ else if(App.seat===0){App.seat=1;handoff(App.names[1],enterCards);}
+  1061→ else enterBattle();};
+  1062→
+  1063→/* --- бой --- */
+  1064→function enterBattle(){
+  1065→ App.viewSeat=App.opp==='bot'?0:App.m.turn;
+  1066→ App.tab='enemy';App.aim=null;App.card=null;App.busy=false;
+  1067→ show('Battle');
+  1068→ const n=App.m.n,cell=fitCell(n);
+  1069→ App.boards.enemy=new BoardView($('enemyCanvas'),{n:n,islands:App.m.islands,cell:cell,
+  1070→  onCell:battleClick,onHover:()=>{},onFrame:updateZoom});
+  1071→ App.boards.own=new BoardView($('ownCanvas'),{n:n,islands:App.m.islands,cell:cell});
+  1072→ renderBattle();
+  1073→ if(App.opp==='local')handoff(App.names[App.viewSeat],()=>{renderBattle();maybeBot();});
+  1074→ else maybeBot();}
+  1075→function myTurn(){return App.m.phase==='battle'&&!App.busy&&App.m.turn===App.viewSeat;}
+  1076→function battleClick(r,c){
+  1077→ if(!myTurn()){toast('Сейчас ход другого капитана');Sound.play('deny');return;}
+  1078→ if(App.tab!=='enemy')return;
+  1079→ const m=App.m;
+  1080→ if(App.card==='radar'){const s=m.reconSize;
+  1081→  App.aim={r:Math.min(r,m.n-s),c:Math.min(c,m.n-s)};Sound.play('click');}
+  1082→ else if(App.card==='sonar'){App.aim=App.axis==='row'?{r:r,c:0}:{r:0,c:c};Sound.play('click');}
+  1083→ else if(App.card==='torpedo'){App.aim={r:r,c:c};Sound.play('click');}
+  1084→ else{if(m.isIsland(r,c)){toast('Остров — стрелять нельзя','bad');Sound.play('deny');return;}
+  1085→  if(m.shots[App.viewSeat].has(K(r,c))){toast('Эта клетка уже проверена','bad');Sound.play('deny');return;}
+  1086→  App.aim={r:r,c:c};Sound.play('click');}
+  1087→ renderBattle();}
+  1088→function torpPath(r,c,dir){const d={up:[-1,0],down:[1,0],left:[0,-1],right:[0,1]}[dir];
+  1089→ const p=[];let rr=r,cc=c,n=App.m.n;
+  1090→ while(rr>=0&&rr<n&&cc>=0&&cc<n){p.push([rr,cc]);rr+=d[0];cc+=d[1];}return p;}
+  1091→function renderBattle(){
+  1092→ const m=App.m;if(!m)return;
+  1093→ const v=m.viewFor(App.viewSeat);
+  1094→ const mine=m.turn===App.viewSeat&&m.phase==='battle';
+  1095→ $('turnPill').className='turn'+(mine?'':' wait');
+  1096→ $('turnPill').lastElementChild.textContent=m.phase==='finished'?'Партия завершена':(mine?'Твой ход':'Ходит '+v.names[m.turn]);
+  1097→ $('roundChip').textContent='Круг '+m.round;
+  1098→ $('modeChip').lastElementChild.textContent=(App.opp==='bot'?'Компьютер · '+({easy:'лёгкий',normal:'средний',hard:'сложный'})[App.level]:'Дуэль вдвоём');
+  1099→ const eb=App.boards.enemy,ob=App.boards.own;
+  1100→ if(eb){eb.ships=v.reveal?v.reveal.enemyShips:null;eb.shots=v.myShots;eb.enemyShots={};
+  1101→  eb.dim=!mine&&m.phase==='battle';eb.aim=App.tab==='enemy'?App.aim:null;
+  1102→  eb.reconCells=null;eb.torpedoPath=null;
+  1103→  if(App.card==='radar'&&App.aim){const s=m.reconSize,cs=[];
+  1104→   for(let i=0;i<s;i++)for(let j=0;j<s;j++)cs.push([App.aim.r+i,App.aim.c+j]);eb.reconCells=cs;}
+  1105→  if(App.card==='sonar'&&App.aim){const cs=[];for(let k=0;k<m.n;k++)cs.push(App.axis==='row'?[App.aim.r,k]:[k,App.aim.c]);eb.reconCells=cs;}
+  1106→  if(App.card==='torpedo'&&App.aim)eb.torpedoPath=torpPath(App.aim.r,App.aim.c,App.dir);}
+  1107→ if(ob){ob.ships=v.me.ships;ob.shots={};ob.enemyShots=v.enemyShots;ob.aim=null;}
+  1108→ $('enemyWrap').hidden=App.tab!=='enemy';$('ownWrap').hidden=App.tab!=='own';
+  1109→ $('tabEnemy').classList.toggle('on',App.tab==='enemy');$('tabOwn').classList.toggle('on',App.tab==='own');
+  1110→ $('enemyLeft').textContent=v.enemy.cellsLeft;
+  1111→ $('enemySunk').textContent=v.enemy.shipsSunk+' / '+v.enemy.shipsTotal;
+  1112→ const total=m.fleetSizes.reduce((a,b)=>a+b,0);
+  1113→ $('enemyBar').style.width=Math.round((total-v.enemy.cellsLeft)/total*100)+'%';
+  1114→ const mf=$('myFleet');mf.innerHTML='';
+  1115→ (v.me.ships||[]).forEach(sh=>{const row=document.createElement('div');row.className='frow';
+  1116→  const hit=new Set(sh.hits.map(p=>K(p[0],p[1])));
+  1117→  row.innerHTML='<span class="fname">'+(SHIPNAME[sh.cells.length]||sh.cells.length)+'</span><span class="pips">'+
+  1118→   sh.cells.map(p=>'<i class="pip'+(hit.has(K(p[0],p[1]))?' dead':'')+'"></i>').join('')+'</span>';
+  1119→  mf.appendChild(row);});
+  1120→ $('shieldChip').textContent=v.me.shieldReady?'🛡 щит готов':'щит не стоит';
+  1121→ $('stealthChip').textContent=v.me.reconBlocked?'🌫 Стелс: разведка запрещена в этот ход':'';
+  1122→ renderHand(v,mine);renderAim(v,mine);renderLog(v);}
+  1123→function renderHand(v,mine){
+  1124→ const h=$('hand');h.innerHTML='';
+  1125→ v.me.cards.forEach(id=>{const c=CARDS[id];
+  1126→  const spent=v.me.used.indexOf(id)>=0;
+  1127→  const locked=(id==='radar'||id==='sonar')&&v.me.reconBlocked;
+  1128→  const b=document.createElement('button');b.type='button';
+  1129→  b.className='card'+(spent?' spent':'')+(locked?' locked':'')+(App.card===id?' sel':'');
+  1130→  b.style.setProperty('--ch',c.hue);
+  1131→  b.innerHTML='<div class="cicon">'+c.icon+'</div><div class="cname">'+c.name+'</div><div class="ctag">'+c.tag+'</div><div class="cdesc">'+c.desc+'</div><div class="stamp">ИЗРАСХОДОВАНА</div>'+(locked?'<div class="clock">🔒</div>':'');
+  1132→  b.onclick=()=>{
+  1133→   if(spent){toast('Карта уже использована','bad');Sound.play('deny');return;}
+  1134→   if(locked){toast('Стелс запретил разведку в этот ход','bad');Sound.play('deny');return;}
+  1135→   if(!mine){toast('Сейчас ход другого капитана');Sound.play('deny');return;}
+  1136→   App.card=App.card===id?null:id;App.aim=null;Sound.play('click');renderBattle();};
+  1137→  h.appendChild(b);});
+  1138→ $('handHint').textContent=App.card?'Выбрана карта: '+CARDS[App.card].name:'Максимум одна карта за ход';}
+  1139→function renderAim(v,mine){
+  1140→ const bar=$('aimBar');
+  1141→ const need=App.card==='shield'||App.card==='stealth';
+  1142→ const visible=mine&&App.tab==='enemy'&&(App.aim||need);
+  1143→ bar.hidden=!visible;if(!visible)return;
+  1144→ $('dirPad').hidden=App.card!=='torpedo';
+  1145→ $('axisSeg').hidden=App.card!=='sonar';
+  1146→ [...$('dirPad').querySelectorAll('button[data-dir]')].forEach(b=>b.classList.toggle('on',b.dataset.dir===App.dir));
+  1147→ [...$('axisSeg').children].forEach(b=>b.classList.toggle('on',b.dataset.axis===App.axis));
+  1148→ $('zoom').hidden=!App.aim;
+  1149→ if(App.card==='radar'){$('aimLabel').textContent=App.aim?coord(App.aim.r,App.aim.c)+' · '+v.reconSize+'×'+v.reconSize:'—';
+  1150→  $('aimHint').textContent='Область целиком на поле';$('btnConfirm').textContent='📡 Сканировать';}
+  1151→ else if(App.card==='sonar'){$('aimLabel').textContent=App.aim?(App.axis==='row'?'Строка '+(App.aim.r+1):'Столбец '+LET[App.aim.c]):'—';
+  1152→  $('aimHint').textContent='Считает целые клетки';$('btnConfirm').textContent='🌊 Прозвонить';}
+  1153→ else if(App.card==='torpedo'){$('aimLabel').textContent=App.aim?coord(App.aim.r,App.aim.c):'—';
+  1154→  $('aimHint').textContent='Идёт до края поля';$('btnConfirm').textContent='🚀 Пуск';}
+  1155→ else if(App.card==='shield'){$('aimLabel').textContent='Щит';$('aimHint').textContent='Погасит одно попадание';$('btnConfirm').textContent='🛡 Поставить';}
+  1156→ else if(App.card==='stealth'){$('aimLabel').textContent='Стелс';$('aimHint').textContent='Запрет разведки сопернику';$('btnConfirm').textContent='🌫 Включить';}
+  1157→ else{$('aimLabel').textContent=App.aim?coord(App.aim.r,App.aim.c):'—';$('aimHint').textContent='Выстрел по клетке';$('btnConfirm').textContent='🎯 Огонь';}
+  1158→ updateZoom();}
+  1159→function updateZoom(){
+  1160→ const bv=App.boards.enemy,z=$('zoom');
+  1161→ if(!bv||!App.aim||z.hidden)return;
+  1162→ const ctx=z.getContext('2d'),Z=72,C=bv.cell,P=bv.pad;
+  1163→ ctx.clearRect(0,0,Z,Z);ctx.fillStyle='#9fe2ee';ctx.fillRect(0,0,Z,Z);
+  1164→ const sx=(P+App.aim.c*C-C)*bv.dpr,sy=(P+App.aim.r*C-C)*bv.dpr,s=C*3*bv.dpr;
+  1165→ try{ctx.drawImage(bv.cv,sx,sy,s,s,0,0,Z,Z);}catch(e){}
+  1166→ ctx.strokeStyle='rgba(56,225,255,.95)';ctx.lineWidth=2;
+  1167→ ctx.strokeRect(Z/3,Z/3,Z/3,Z/3);
+  1168→ ctx.beginPath();ctx.moveTo(Z/2,4);ctx.lineTo(Z/2,Z-4);ctx.moveTo(4,Z/2);ctx.lineTo(Z-4,Z/2);
+  1169→ ctx.globalAlpha=.35;ctx.stroke();ctx.globalAlpha=1;}
+  1170→$('dirPad').addEventListener('click',e=>{const b=e.target.closest('button[data-dir]');if(!b)return;
+  1171→ App.dir=b.dataset.dir;Sound.play('click');renderBattle();});
+  1172→$('axisSeg').addEventListener('click',e=>{const b=e.target.closest('button[data-axis]');if(!b)return;
+  1173→ App.axis=b.dataset.axis;App.aim=null;Sound.play('click');renderBattle();});
+  1174→$('tabEnemy').onclick=()=>{App.tab='enemy';Sound.play('click');renderBattle();};
+  1175→$('tabOwn').onclick=()=>{App.tab='own';Sound.play('click');renderBattle();};
+  1176→$('btnCancel').onclick=()=>{App.aim=null;App.card=null;Sound.play('click');renderBattle();};
+  1177→$('btnConfirm').onclick=()=>{
+  1178→ if(!myTurn())return;
+  1179→ const a=App.aim;let act;
+  1180→ if(App.card==='shield')act={kind:'shield'};
+  1181→ else if(App.card==='stealth')act={kind:'stealth'};
+  1182→ else if(!a){toast('Сначала выбери клетку');return;}
+  1183→ else if(App.card==='radar')act={kind:'radar',r:a.r,c:a.c};
+  1184→ else if(App.card==='sonar')act={kind:'sonar',axis:App.axis,index:App.axis==='row'?a.r:a.c};
+  1185→ else if(App.card==='torpedo')act={kind:'torpedo',r:a.r,c:a.c,dir:App.dir};
+  1186→ else act={kind:'fire',r:a.r,c:a.c};
+  1187→ App.aim=null;App.card=null;
+  1188→ applyAction(App.viewSeat,act);};
+  1189→
+  1190→function applyAction(seat,act){
+  1191→ const m=App.m;let out,kind=act.kind;
+  1192→ try{
+  1193→  if(kind==='fire')out=m.fire(seat,act.r,act.c);
+  1194→  else if(kind==='radar')out=m.radar(seat,act.r,act.c);
+  1195→  else if(kind==='sonar')out=m.sonar(seat,act.axis,act.index);
+  1196→  else if(kind==='shield')out=m.shield(seat);
+  1197→  else if(kind==='stealth')out=m.stealth(seat);
+  1198→  else if(kind==='torpedo')out=m.torpedo(seat,act.r,act.c,act.dir);
+  1199→  else return;
+  1200→ }catch(e){toast(e.message||'Действие невозможно','bad');Sound.play('deny');App.busy=false;renderBattle();return;}
+  1201→ if(App.bot&&seat===1){
+  1202→  if(kind==='fire')App.bot.observe([act.r,act.c],out.res);
+  1203→  if(kind==='torpedo'){out.path.forEach(p=>App.bot.tried.add(K(p[0],p[1])));out.hits.forEach(h=>App.bot.observe(h.cell,h.res));}}
+  1204→ App.busy=true;
+  1205→ const wait=playEffects(seat,kind,act,out);
+  1206→ saveGame();
+  1207→ setTimeout(()=>{
+  1208→  App.busy=false;
+  1209→  showResult(seat,kind,act,out);
+  1210→  renderBattle();
+  1211→  if(m.phase==='finished'){finish();return;}
+  1212→  if(App.opp==='bot'){if(m.turn===1)maybeBot();}
+  1213→  else{App.viewSeat=m.turn;handoff(m.names[m.turn],()=>{renderBattle();});}
+  1214→ },wait);}
+  1215→function boardFor(seat){return seat===App.viewSeat?App.boards.enemy:App.boards.own;}
+  1216→function playEffects(seat,kind,act,out){
+  1217→ const bv=boardFor(seat);if(!bv)return 400;
+  1218→ if(kind==='fire'){
+  1219→  bv.addEffect({kind:'shell',r:act.r,c:act.c});Sound.play('shoot');
+  1220→  setTimeout(()=>{bv.addEffect({kind:'splash',r:act.r,c:act.c,color:out.res==='miss'?'#ffffff':'#ff9aa8'});
+  1221→   Sound.play(out.res==='miss'?'splash':out.res==='blocked'?'blocked':out.res==='sunk'?'sunk':'hit');
+  1222→   if(out.sunkCells)bv.addEffect({kind:'sink',cells:out.sunkCells});},260);
+  1223→  return 620;}
+  1224→ if(kind==='torpedo'){
+  1225→  bv.addEffect({kind:'torpedo',path:out.path});Sound.play('torpedo');
+  1226→  out.hits.forEach((h,i)=>setTimeout(()=>{
+  1227→   bv.addEffect({kind:'splash',r:h.cell[0],c:h.cell[1],color:'#ff9aa8'});
+  1228→   Sound.play(h.res==='blocked'?'blocked':h.res==='sunk'?'sunk':'hit');},420+i*160));
+  1229→  return Math.max(800,420+out.hits.length*160+320);}
+  1230→ if(kind==='radar'){bv.addEffect({kind:'scan',cells:out.cells,axis:'row',color:'#38e1ff'});Sound.play('radar');return 700;}
+  1231→ if(kind==='sonar'){bv.addEffect({kind:'scan',cells:out.cells,axis:act.axis,color:'#7cf59b'});Sound.play('sonar');return 700;}
+  1232→ if(kind==='shield'){const ob=seat===App.viewSeat?App.boards.own:App.boards.enemy;
+  1233→  if(ob)ob.addEffect({kind:'shieldwave',r:Math.floor(App.m.n/2),c:Math.floor(App.m.n/2)});
+  1234→  Sound.play('shield');return 420;}
+  1235→ if(kind==='stealth'){Sound.play('stealth');return 420;}
+  1236→ return 400;}
+  1237→function banner(cls,txt){const b=$('banner');b.className='banner '+cls+' flash';b.textContent=txt;
+  1238→ setTimeout(()=>b.classList.remove('flash'),480);}
+  1239→function showResult(seat,kind,act,out){
+  1240→ const mine=seat===App.viewSeat;const who=mine?'Ты':'Соперник';
+  1241→ if(kind==='fire'){const map={miss:['','💧 '+who+': мимо — '+coord(act.r,act.c)],
+  1242→   hit:['hit','💥 '+who+': попадание — '+coord(act.r,act.c)],
+  1243→   sunk:['sunk','🔥 '+who+': корабль потоплен!'],
+  1244→   blocked:['blocked','🛡 Щит погасил попадание — '+coord(act.r,act.c)]};
+  1245→  const r=map[out.res]||map.miss;banner(r[0],r[1]);}
+  1246→ else if(kind==='torpedo'){const n=out.hits.length;
+  1247→  banner(n?'sunk':'',n?'🚀 Торпеда: '+n+' поражений':'🚀 Торпеда прошла чисто');}
+  1248→ else if(kind==='radar')banner('recon','📡 Радар: '+out.count+' целых клеток в области');
+  1249→ else if(kind==='sonar')banner('recon','🌊 Эхолот: '+out.count+' целых клеток в линии');
+  1250→ else if(kind==='shield')banner('blocked','🛡 '+who+': щит поставлен');
+  1251→ else if(kind==='stealth')banner('recon','🌫 '+who+': стелс — разведка сопернику запрещена');}
+  1252→function renderLog(v){
+  1253→ const box=$('log');box.innerHTML='';
+  1254→ const evs=v.events.slice(-40).reverse();
+  1255→ evs.forEach(e=>{
+  1256→  let txt='',cls='sys';
+  1257→  const mine=e.by===v.seat;
+  1258→  if(e.t==='start')txt='Бой начался. Первым ходит '+v.names[e.starter]+'.';
+  1259→  else if(e.t==='fire'){cls=mine?'me':'foe';
+  1260→   const r={miss:'мимо',hit:'попадание',sunk:'потоплен',blocked:'щит'}[e.res]||e.res;
+  1261→   txt=(mine?'Ты':'Соперник')+': '+coord(e.cell[0],e.cell[1])+' — <b>'+r+'</b>';}
+  1262→  else if(e.t==='cardUsed'){cls=mine?'me':'foe';txt=(mine?'Ты':'Соперник')+' применил <b>'+CARDS[e.card].name+'</b>';}
+  1263→  else if(e.t==='radar'){cls='me';txt='Радар '+coord(e.origin[0],e.origin[1])+': <b>'+e.count+'</b> целых клеток';}
+  1264→  else if(e.t==='sonar'){cls='me';txt='Эхолот '+(e.axis==='row'?'строка '+(e.index+1):'столбец '+LET[e.index])+': <b>'+e.count+'</b>';}
+  1265→  else if(e.t==='torpedo'){cls=mine?'me':'foe';
+  1266→   txt=(mine?'Твоя':'Чужая')+' торпеда: <b>'+e.hits.length+'</b> поражений';}
+  1267→  else if(e.t==='win'){txt='🏆 Победил <b>'+v.names[e.by]+'</b>';}
+  1268→  const d=document.createElement('div');d.className='li '+cls;
+  1269→  d.innerHTML='<span class="lr">'+e.round+'</span><span>'+txt+'</span>';
+  1270→  box.appendChild(d);});}
+  1271→function maybeBot(){
+  1272→ if(App.opp!=='bot'||!App.m||App.m.phase!=='battle'||App.m.turn!==1)return;
+  1273→ App.busy=true;renderBattle();
+  1274→ setTimeout(()=>{
+  1275→  if(!App.m||App.m.phase!=='battle'||App.m.turn!==1){App.busy=false;renderBattle();return;}
+  1276→  const v=App.m.viewFor(1);let act=App.bot.plan(v);
+  1277→  if(act.kind==='pass'){const s=App.bot.chooseShot(v);act=s?{kind:'fire',r:s[0],c:s[1]}:{kind:'shield'};}
+  1278→  App.busy=false;applyAction(1,act);
+  1279→ },800+Math.random()*500);}
+  1280→
+  1281→/* --- итог --- */
+  1282→function finish(){
+  1283→ App.over=true;try{localStorage.removeItem('ci:save');}catch(e){}
+  1284→ const v=App.m.viewFor(App.viewSeat);
+  1285→ const win=App.m.winner===App.viewSeat;
+  1286→ $('overEmblem').textContent=win?'🏆':'🌊';
+  1287→ $('overTitle').textContent=win?'Ты победил!':'Победил '+v.names[App.m.winner];
+  1288→ $('overSub').textContent=win?'Весь чужой флот на дне. Чистая работа, капитан.':'Флот потоплен, но море большое. Реванш — и начинающий поменяется.';
+  1289→ const st=$('overStats');st.innerHTML='';
+  1290→ [['Кругов',App.m.round],['Твоих выстрелов',Object.keys(v.myShots).length],
+  1291→  ['Карт потрачено',v.me.used.length],['Осталось у тебя',v.me.ships.reduce((a,s)=>a+s.cells.length-s.hits.length,0)]]
+  1292→ .forEach(p=>{const d=document.createElement('div');d.className='tile';
+  1293→  d.innerHTML='<b>'+p[1]+'</b><span>'+p[0]+'</span>';st.appendChild(d);});
+  1294→ $('modalOver').classList.add('on');
+  1295→ Sound.play(win?'win':'lose');
+  1296→ if(win&&CFG.fx)confetti();
+  1297→ renderBattle();}
+  1298→function confetti(){
+  1299→ const box=$('confetti'),cols=['#ff5d73','#ffc247','#7cf59b','#38e1ff','#b98cff','#ff4fa3','#7fe6e0'];
+  1300→ for(let i=0;i<90;i++){const d=document.createElement('div');d.className='cf';
+  1301→  d.style.left=Math.random()*100+'vw';d.style.background=cols[i%cols.length];
+  1302→  d.style.animationDuration=(1.8+Math.random()*1.8)+'s';d.style.animationDelay=(Math.random()*.5)+'s';
+  1303→  box.appendChild(d);setTimeout(()=>d.remove(),4200);}}
+  1304→$('btnRematch').onclick=()=>{$('modalOver').classList.remove('on');Sound.play('click');
+  1305→ const st=1-App.m.starter;newMatch(st);toast('Реванш: первым ходит '+App.names[st],'good');};
+  1306→$('btnMenu').onclick=()=>{$('modalOver').classList.remove('on');toMenu();};
+  1307→$('btnLeave').onclick=()=>{toMenu();};
+  1308→function toMenu(){try{localStorage.removeItem('ci:save');}catch(e){}
+  1309→ App.m=null;App.bot=null;show('Menu');renderMenu();}
+  1310→
+  1311→/* --- передача устройства --- */
+  1312→let handoffCb=null;
+  1313→function handoff(name,cb){handoffCb=cb;$('handoffName').textContent=name;$('handoff').classList.add('on');}
+  1314→$('btnHandoff').onclick=()=>{$('handoff').classList.remove('on');Sound.play('turn');
+  1315→ const cb=handoffCb;handoffCb=null;if(cb)cb();};
+  1316→
+  1317→/* --- сохранение --- */
+  1318→function saveGame(){if(!App.m||App.m.phase==='finished')return;
+  1319→ saveJSON('ci:save',{m:App.m.toJSON(),opp:App.opp,level:App.level,seat:App.seat,viewSeat:App.viewSeat});}
+  1320→$('btnContinue').onclick=()=>{
+  1321→ const s=loadJSON('ci:save',null);if(!s){toast('Сохранённой партии нет','bad');return;}
+  1322→ App.m=Match.fromJSON(s.m);App.opp=s.opp;App.level=s.level;App.mode=App.m.mode;
+  1323→ App.names=App.m.names;App.seat=s.seat;App.viewSeat=s.viewSeat;
+  1324→ $('menuName1').value=App.names[0];$('menuName2').value=App.names[1];
+  1325→ App.bot=App.opp==='bot'?new Bot(App.level,App.m.n,App.m.islands,App.m.fleetSizes):null;
+  1326→ if(App.bot)App.m.shots[1].forEach((v,k)=>App.bot.tried.add(k));
+  1327→ Sound.unlock();Sound.play('click');
+  1328→ if(App.m.phase==='battle'||App.m.phase==='finished')enterBattle();
+  1329→ else if(App.m.phase==='cards')enterCards();
+  1330→ else enterSetup();
+  1331→ toast('Партия восстановлена','good');};
+  1332→
+  1333→/* --- верхняя панель и настройки --- */
+  1334→$('btnHelp').onclick=()=>{Sound.play('click');$('modalHelp').classList.add('on');};
+  1335→$('btnHelpClose').onclick=()=>{Sound.play('click');$('modalHelp').classList.remove('on');};
+  1336→$('btnSound').onclick=()=>{CFG.sound=!CFG.sound;saveCfg();Sound.setMuted(!CFG.sound);
+  1337→ if(CFG.sound){Sound.unlock();Sound.play('click');}syncSound();};
+  1338→function syncSound(){const b=$('btnSound');b.textContent=CFG.sound?'🔊':'🔇';b.classList.toggle('off',!CFG.sound);
+  1339→ b.title=CFG.sound?'Звук включён':'Звук выключен';}
+  1340→$('btnSettings').onclick=()=>{Sound.play('click');$('settingsPanel').classList.add('on');$('settingsScrim').classList.add('on');};
+  1341→function closeSet(){$('settingsPanel').classList.remove('on');$('settingsScrim').classList.remove('on');}
+  1342→$('btnSetClose').onclick=closeSet;$('settingsScrim').onclick=closeSet;
+  1343→function syncSettings(){
+  1344→ $('setWave').value=CFG.wave;$('vWave').textContent=(+CFG.wave).toFixed(1);
+  1345→ $('setBubbles').value=CFG.bubbles;$('vBub').textContent=CFG.bubbles;
+  1346→ $('setGlow').value=CFG.glow;$('vGlow').textContent=(+CFG.glow).toFixed(1);
+  1347→ $('setScale').value=CFG.scale;$('vScale').textContent=(+CFG.scale).toFixed(2);
+  1348→ $('setCoords').classList.toggle('on',!!CFG.coords);
+  1349→ $('setFx').classList.toggle('on',!!CFG.fx);
+  1350→ $('setDpr').value=String(CFG.dpr);}
+  1351→function applySettings(){saveCfg();Ocean.apply();refit();syncSettings();}
+  1352→$('setWave').oninput=e=>{CFG.wave=+e.target.value;applySettings();};
+  1353→$('setBubbles').oninput=e=>{CFG.bubbles=+e.target.value;applySettings();};
+  1354→$('setGlow').oninput=e=>{CFG.glow=+e.target.value;applySettings();};
+  1355→$('setScale').oninput=e=>{CFG.scale=+e.target.value;applySettings();};
+  1356→$('setCoords').onclick=()=>{CFG.coords=!CFG.coords;Sound.play('click');applySettings();};
+  1357→$('setFx').onclick=()=>{CFG.fx=!CFG.fx;Sound.play('click');applySettings();};
+  1358→$('setDpr').onchange=e=>{CFG.dpr=+e.target.value;applySettings();};
+  1359→$('btnSetReset').onclick=()=>{CFG=Object.assign({},DEF);Sound.setMuted(!CFG.sound);syncSound();applySettings();toast('Оформление сброшено','good');};
+  1360→$('btnStart').onclick=()=>{Sound.unlock();Sound.play('click');newMatch(null);};
+  1361→document.addEventListener('pointerdown',()=>Sound.unlock(),{once:true});
+  1362→document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSet();$('modalHelp').classList.remove('on');}});
+  1363→
+  1364→/* --- запуск --- */
+  1365→Ocean.init($('ocean'));
+  1366→Sound.setMuted(!CFG.sound);
+  1367→syncSound();syncSettings();renderMenu();
+  1368→</script>
+  1369→</body>
+  1370→</html>

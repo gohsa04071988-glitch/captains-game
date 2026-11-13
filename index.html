@@ -376,7 +376,16 @@ select.txt{cursor:pointer}
           <div class="seg"><button id="tabEnemy" class="on">Ищу противника</button><button id="tabOwn">Мой флот</button></div>
         </div>
       </div>
-      <div class="banner" id="banner">Выбери клетку и подтверди выстрел</div>
+      
+    <div id="bossHpContainer" style="display:none; margin-bottom:15px; background:rgba(255,77,94,0.1); padding:10px; border-radius:12px; border:1px solid var(--danger);">
+        <div style="color:var(--danger); font-weight:900; margin-bottom:5px; display:flex; justify-content:space-between;">
+            <span>🐙 Здоровье Кракена</span>
+            <span id="bossHpText">9 / 9</span>
+        </div>
+        <div class="bar"><i id="bossHpBar" style="width:100%; background:var(--danger);"></i></div>
+    </div>
+    
+<div class="banner" id="banner">Выбери клетку и подтверди выстрел</div>
       <div class="bshell" style="margin-top:11px">
         <div id="enemyWrap" class="bframe"><canvas class="bcanvas" id="enemyCanvas"></canvas></div>
         <div id="ownWrap" class="bframe" hidden><canvas class="bcanvas" id="ownCanvas"></canvas></div>
@@ -406,6 +415,8 @@ select.txt{cursor:pointer}
         <div class="note" id="stealthChip" style="margin-top:6px"></div></div>
       <div class="stat"><div class="sh"><span>Журнал</span></div><div class="log" id="log"></div></div>
       <button class="btn ghost sm" id="btnLeave">← В меню</button>
+    <button class="btn ghost sm" id="btnFlip" style="margin-top:10px;">🔄 Перевернуть</button>
+<button class="btn ghost sm" id="btnFlip">🔄 Перевернуть</button>
     </div>
   </div>
 </section>
@@ -486,6 +497,9 @@ const MODES={
  simple:{id:'simple',name:'Простой',n:6,fleet:[3,2,2],islands:[[2,2],[3,3]],recon:2,label:'6 × 6 · флот 3–2–2',desc:'Крупные клетки, радар 2×2. Хорошо для младших.'},
  hard:{id:'hard',name:'Сложный',n:8,fleet:[4,3,2,2],islands:[[2,2],[2,5],[5,2],[5,5]],recon:3,label:'8 × 8 · флот 4–3–2–2',desc:'Больше воды, радар 3×3, четыре острова.'}};
 const SHIPNAME={4:'Флагман',3:'Крейсер',2:'Катер'};
+
+    MODES['kraken'] = { id:'kraken', name:'Битва с Кракеном', n:10, fleet:[4,3,2,2], islands:[[1,1],[8,8],[1,8],[8,1]], recon:3, label:'10 × 10 · БОСС', desc:'Сразись с гигантским монстром.', color:'#1a0b2e' };
+    
 
     const HIST_MODES = {
       trafalgar: {id:'trafalgar', name:'Трафальгар', n:8, fleet:[4,3,2,2], islands:[[1,1],[1,6],[6,1],[6,6]], recon:3, label:'8 × 8 · 1805', desc:'Англия против Франции и Испании.', card:'21 октября 1805 года. Британский флот под командованием адмирала Нельсона разбил объединенный франко-испанский флот. Штормовое море, деревянные парусники.', color:'#142b40'},
@@ -971,7 +985,7 @@ class BoardView{
   if(dead){ctx.globalAlpha=.72;ctx.translate(cx,cy);ctx.rotate(.07);ctx.translate(-cx,-cy);}
   else if(CFG.wave>0&&CFG.fx){ctx.translate(cx,cy+Math.sin(this._t*.045+ph)*C*.02);
    ctx.rotate(Math.sin(this._t*.032+ph)*.013);ctx.translate(-cx,-cy);}
-  ctx.translate(cx,cy);ctx.rotate(horiz?0:Math.PI/2);
+  ctx.translate(cx,cy);ctx.scale(0.82,0.82);ctx.rotate(horiz?0:Math.PI/2);
   // локальные координаты: x — вдоль корабля (корма слева, нос справа), y — поперёк
   const hw=W-ins*2,y0=-hw/2,y1=hw/2,nose=Math.min(hw*1.05,C*.5);
   const hull=i2=>{const xa=-L/2+i2,xb=L/2-i2*1.4,ya=y0+i2*.85,yb=y1-i2*.85,nb=Math.max(3,nose-i2*1.6),r=(yb-ya)*.3;
@@ -1280,7 +1294,21 @@ function renderMenu(){
  $('modeGrid').innerHTML='';
  Object.keys(MODES).forEach(id=>{const m=MODES[id];
   const b=document.createElement('button');b.className='mcard'+(App.mode===id?' sel':'');b.type='button';
-  b.innerHTML='<div class="mck">✓</div><div class="mct">'+(id==='simple'?'🏝':'🌊')+' '+m.name+'</div><div class="mcs">'+m.label+'</div><div class="mcd">'+m.desc+'</div>';
+  if (id === 'kraken') {
+              b.style.border = '2px solid var(--danger)';
+              b.style.background = 'linear-gradient(160deg, rgba(255,77,94,0.25), rgba(6,42,61,0.9))';
+              b.style.boxShadow = App.mode===id ? '0 0 25px var(--danger)' : '0 0 15px rgba(255,77,94,0.4)';
+              b.innerHTML = '<div class="mck">✓</div><div class="mct" style="color:var(--danger); font-weight:900; font-size:18px;">🐙 БОСС: КРАКЕН</div><div class="mcs" style="color:#ff8b9c;">'+m.label+'</div><div class="mcd">'+m.desc+'</div>';
+          } else {
+              if (id === 'kraken') {
+              b.style.border = '2px solid var(--danger)';
+              b.style.background = 'linear-gradient(160deg, rgba(255,77,94,0.25), rgba(6,42,61,0.9))';
+              b.style.boxShadow = App.mode===id ? '0 0 25px var(--danger)' : '0 0 15px rgba(255,77,94,0.4)';
+              b.innerHTML = '<div class="mck">✓</div><div class="mct" style="color:var(--danger); font-weight:900; font-size:18px;">🐙 БОСС: КРАКЕН</div><div class="mcs" style="color:#ff8b9c;">'+m.label+'</div><div class="mcd">'+m.desc+'</div>';
+          } else {
+              b.innerHTML='<div class="mck">✓</div><div class="mct">'+(id==='simple'?'🏝':'🌊')+' '+m.name+'</div><div class="mcs">'+m.label+'</div><div class="mcd">'+m.desc+'</div>';
+          }
+          }
   b.onclick=()=>{App.mode=id;Sound.play('click');renderMenu();};
   $('modeGrid').appendChild(b);});
  
@@ -1511,7 +1539,33 @@ function renderBattle(){
  if(sc&&(sc.wins[0]||sc.wins[1])&&sc.names[0]===App.names[0]&&sc.names[1]===App.names[1]){sch.hidden=false;sch.lastElementChild.textContent=scoreLine(sc);}
  else sch.hidden=true;
  $('modeChip').lastElementChild.textContent=(App.opp==='bot'?'Компьютер · '+({easy:'лёгкий',normal:'средний',hard:'сложный'})[App.level]:(App.opp==='online'?'Сеть':'Дуэль вдвоём'));
- const eb=App.boards.enemy,ob=App.boards.own;
+ 
+    const bossWrap = document.getElementById('bossHpContainer');
+    if(bossWrap) {
+        if(App.mode === 'kraken' && App.m.ships[1]) {
+            bossWrap.style.display = 'block';
+            const kraken = App.m.ships[1].find(s => s.cells.length === 9);
+            const hits = kraken ? kraken.hits.length : 0;
+            const hpLeft = 9 - hits;
+            document.getElementById('bossHpText').innerText = hpLeft + ' / 9';
+            document.getElementById('bossHpBar').style.width = (hpLeft/9)*100 + '%';
+            if(hpLeft <= 0) document.getElementById('bossHpText').innerText = 'МЁРТВ';
+        } else {
+            bossWrap.style.display = 'none';
+        }
+    }
+    
+    
+    const eb=App.boards.enemy,ob=App.boards.own;
+    if (App.mode === 'kraken' && App.m.ships[1] && eb) {
+        eb.ships = App.m.ships[1];
+    }
+    
+    if (App.mode === 'kraken' && App.m.ships[1] && eb) {
+        eb.ships = App.m.ships[1]; // Кракен всегда виден!
+    }
+    
+    
  if(eb){const sunkKey={};(v.enemySunk||[]).forEach(cs=>{sunkKey[cs.map(p=>K(p[0],p[1])).sort().join('|')]=1;});
   eb.ships=((v.reveal&&v.reveal.enemyShips)?v.reveal.enemyShips:(v.enemySunk||[]).map(cs=>({cells:cs,hits:cs.map(x=>x.slice())})))
    .map(s=>({cells:s.cells,hits:s.hits,sunk:sunkKey[s.cells.map(p=>K(p[0],p[1])).sort().join('|')]===1}));
@@ -1704,19 +1758,54 @@ function renderLog(v){
   const d=document.createElement('div');d.className='li '+cls;
   d.innerHTML='<span class="lr">'+e.round+'</span><span>'+txt+'</span>';
   box.appendChild(d);});}
-function maybeBot(){
- if(window.onlineMode) return;
- if(App.opp!=='bot'||!App.m||App.m.phase!=='battle'||App.m.turn!==1)return;
- App.busy=true;renderBattle();
- setTimeout(()=>{
-  if(!App.m||App.m.phase!=='battle'||App.m.turn!==1){App.busy=false;renderBattle();return;}
-  const v=App.m.viewFor(1);let act=App.bot.plan(v);
-  if(act.kind==='pass'){const s=App.bot.chooseShot(v);
-   if(s)act={kind:'fire',r:s[0],c:s[1]};
-   else{const sc=App.bot.shieldCell(v);act=sc?{kind:'shield',r:sc[0],c:sc[1]}:null;}}
-  if(!act){App.busy=false;renderBattle();return;}
-  App.busy=false;applyAction(1,act);
- },800+Math.random()*500);}
+
+    
+    function maybeBot(){
+     if(App.mode==='kraken' && App.m && App.m.turn===1 && App.m.phase==='battle'){
+         App.busy=true; renderBattle();
+         setTimeout(()=>{
+             const n=App.m.n;
+             let nr=Math.floor(Math.random()*(n-3)) + 1;
+             let nc=Math.floor(Math.random()*(n-3)) + 1;
+             let newCells=[];
+             for(let i=0;i<3;i++) for(let j=0;j<3;j++) newCells.push([nr+i, nc+j]);
+             if(App.m.ships[1][0]) App.m.ships[1][0].cells = newCells;
+             
+             const eb=App.boards.enemy;
+             if(eb) eb.addEffect({kind:'splash', r: nr+1, c: nc+1, color:'#b98cff'});
+             Sound.play('plop');
+             
+             let atks=[{name:'⚓ Якорь'},{name:'🛢️ Бочка'},{name:'🚢 Обломки'}];
+             let atk=atks[Math.floor(Math.random()*atks.length)];
+             
+             let tr=Math.floor(Math.random()*n), tc=Math.floor(Math.random()*n);
+             let myShip=App.m.ships[0].find(s=>s.cells.some(p=>p[0]===tr && p[1]===tc));
+             if(myShip) myShip.hits.push([tr,tc]);
+             
+             const ob=App.boards.own;
+             if(ob) ob.addEffect({kind:'splash', r: tr, c: tc, color:'#ff5d73'});
+             toast('Кракен бросает ' + atk.name + '!', 'bad'); Sound.play('hit');
+             
+             App.m.turn=0; if(App.m.round) App.m.round++;
+             setTimeout(()=>{
+                 App.busy=false; renderBattle();
+                 if(App.m.allDead(0)){ App.m.winner=1; App.m.phase='finished'; finish(); }
+             }, 1200);
+         }, 800);
+         return;
+     }
+     
+     if(App.opp!=='bot'||!App.m||App.m.phase!=='battle'||App.m.turn!==1)return;
+     App.busy=true;renderBattle();
+     setTimeout(()=>{
+      if(!App.m||App.m.phase!=='battle'||App.m.turn!==1){App.busy=false;renderBattle();return;}
+      const v=App.m.viewFor(1);let act=App.bot.plan(v);
+      if(act.kind==='pass'){const s=App.bot.chooseShot(v);
+       if(s)act={kind:'fire',r:s[0],c:s[1]};
+       else{const sc=App.bot.shieldCell(v);act=sc?{kind:'shield',r:sc[0],c:sc[1]}:null;}}
+      if(!act){App.busy=false;renderBattle();return;}
+      App.busy=false;applyAction(1,act);
+     },800+Math.random()*500);}
 
 /* --- итог --- */
 function finish(){
@@ -1856,7 +1945,46 @@ $('setCoords').onclick=()=>{CFG.coords=!CFG.coords;Sound.play('click');applySett
 $('setFx').onclick=()=>{CFG.fx=!CFG.fx;Sound.play('click');applySettings();};
 $('setDpr').onchange=e=>{CFG.dpr=+e.target.value;applySettings();};
 $('btnSetReset').onclick=()=>{CFG=Object.assign({},DEF);Sound.setMuted(!CFG.sound);syncSound();applySettings();toast('Оформление сброшено','good');};
-$('btnStart').onclick=()=>{Sound.unlock();Sound.play('click');newMatch(null);};
+$('btnStart').onclick=()=>{
+        Sound.unlock(); Sound.play('click');
+        if (App.mode === 'kraken') {
+            // Создаем полноэкранное окно с игрой Кракена
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'fixed';
+            wrapper.style.inset = '0';
+            wrapper.style.zIndex = '9999';
+            
+            const iframe = document.createElement('iframe');
+            iframe.src = 'kraken.html';
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.style.background = '#0c0716';
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.innerText = '✖ Закрыть бой';
+            closeBtn.style.position = 'absolute';
+            closeBtn.style.top = '15px';
+            closeBtn.style.right = '15px';
+            closeBtn.style.zIndex = '10000';
+            closeBtn.style.padding = '10px 15px';
+            closeBtn.style.background = '#ff4d5e';
+            closeBtn.style.color = '#fff';
+            closeBtn.style.border = 'none';
+            closeBtn.style.borderRadius = '8px';
+            closeBtn.style.fontWeight = 'bold';
+            closeBtn.style.cursor = 'pointer';
+            closeBtn.style.fontFamily = 'sans-serif';
+            
+            closeBtn.onclick = () => wrapper.remove();
+            
+            wrapper.appendChild(iframe);
+            wrapper.appendChild(closeBtn);
+            document.body.appendChild(wrapper);
+            return;
+        }
+        newMatch(null);
+    };
 document.addEventListener('pointerdown',()=>Sound.unlock(),{once:true});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSet();$('modalHelp').classList.remove('on');}});
 
@@ -1976,6 +2104,38 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSet();$('modal
         } else { originalReady(); }
     };
     setTimeout(initOnlineUI, 100);
+    
+
+    setTimeout(() => {
+        const flipBtn = document.getElementById('btnFlip');
+        if(flipBtn) {
+            flipBtn.onclick = () => {
+                const wrap = document.getElementById('enemyWrap');
+                if(wrap.style.transform === 'rotate(180deg)') {
+                    wrap.style.transform = 'rotate(0deg)';
+                } else {
+                    wrap.style.transform = 'rotate(180deg)';
+                }
+            };
+        }
+    }, 1000);
+    
+
+    setTimeout(() => {
+        const flipBtn = document.getElementById('btnFlip');
+        if(flipBtn) {
+            flipBtn.onclick = () => {
+                const wrap = document.getElementById('enemyWrap');
+                if(wrap) {
+                    if(wrap.style.transform === 'rotate(180deg)') {
+                        wrap.style.transform = 'rotate(0deg)';
+                    } else {
+                        wrap.style.transform = 'rotate(180deg)';
+                    }
+                }
+            };
+        }
+    }, 1000);
     
 /* --- запуск --- */
 Ocean.init($('ocean'));

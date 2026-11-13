@@ -1,0 +1,852 @@
+     1→/* ============================================================
+     2→   ДВИЖОК ФОНОВЫХ СЦЕН
+     3→   Рисует фон каждой картинки: небо, солнце, облака, холмы,
+     4→   звёзды, город, море. Работает по "зерну" (seed), поэтому
+     5→   каждая сцена всегда выглядит одинаково — деталь за деталью.
+     6→   ============================================================ */
+     7→
+     8→import type { PuzzlePalette } from './puzzle-data';
+     9→import { paletteForScene } from './puzzle-data';
+    10→
+    11→export type Ctx2D = CanvasRenderingContext2D;
+    12→
+    13→/* ---------- Зернируемый генератор случайности ---------- */
+    14→
+    15→export function makeRng(seed: number): () => number {
+    16→  let s = seed % 2147483647;
+    17→  if (s <= 0) s += 2147483646;
+    18→  return () => {
+    19→    s = (s * 16807) % 2147483647;
+    20→    return s / 2147483647;
+    21→  };
+    22→}
+    23→
+    24→export function seedFromText(text: string): number {
+    25→  let h = 7;
+    26→  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) % 2147483647;
+    27→  return h;
+    28→}
+    29→
+    30→/* ---------- Примитивы ---------- */
+    31→
+    32→export function fillRoundRect(ctx: Ctx2D, x: number, y: number, w: number, h: number, r: number): void {
+    33→  const rr = Math.min(r, w / 2, h / 2);
+    34→  ctx.beginPath();
+    35→  ctx.moveTo(x + rr, y);
+    36→  ctx.arcTo(x + w, y, x + w, y + h, rr);
+    37→  ctx.arcTo(x + w, y + h, x, y + h, rr);
+    38→  ctx.arcTo(x, y + h, x, y, rr);
+    39→  ctx.arcTo(x, y, x + w, y, rr);
+    40→  ctx.closePath();
+    41→}
+    42→
+    43→export function strokeRoundRect(ctx: Ctx2D, x: number, y: number, w: number, h: number, r: number): void {
+    44→  fillRoundRect(ctx, x, y, w, h, r);
+    45→  ctx.stroke();
+    46→}
+    47→
+    48→export function circle(ctx: Ctx2D, x: number, y: number, r: number): void {
+    49→  ctx.beginPath();
+    50→  ctx.arc(x, y, r, 0, Math.PI * 2);
+    51→  ctx.closePath();
+    52→}
+    53→
+    54→export function ellipse(ctx: Ctx2D, x: number, y: number, rx: number, ry: number, rot = 0): void {
+    55→  ctx.beginPath();
+    56→  ctx.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2);
+    57→  ctx.closePath();
+    58→}
+    59→
+    60→/* Заполнить текущую фигуру цветом и обвести контуром */
+    61→export function paint(ctx: Ctx2D, fill: string | null, stroke?: string, lw?: number): void {
+    62→  if (fill) {
+    63→    ctx.fillStyle = fill;
+    64→    ctx.fill();
+    65→  }
+    66→  if (stroke) {
+    67→    ctx.strokeStyle = stroke;
+    68→    ctx.lineWidth = lw ?? 3;
+    69→    ctx.lineJoin = 'round';
+    70→    ctx.lineCap = 'round';
+    71→    ctx.stroke();
+    72→  }
+    73→}
+    74→
+    75→/* Мягкая тень-овал под предметом */
+    76→export function groundShadow(ctx: Ctx2D, x: number, y: number, w: number, color = 'rgba(0,0,0,0.14)'): void {
+    77→  ctx.save();
+    78→  ctx.fillStyle = color;
+    79→  ellipse(ctx, x, y, w, w * 0.22);
+    80→  ctx.fill();
+    81→  ctx.restore();
+    82→}
+    83→
+    84→/* ---------- Небо и космос ---------- */
+    85→
+    86→export function drawSky(ctx: Ctx2D, s: number, pal: PuzzlePalette): void {
+    87→  const g = ctx.createLinearGradient(0, 0, s * 0.2, s);
+    88→  g.addColorStop(0, pal.skyTop);
+    89→  g.addColorStop(1, pal.skyBottom);
+    90→  ctx.fillStyle = g;
+    91→  ctx.fillRect(0, 0, s, s);
+    92→}
+    93→
+    94→export function drawSpaceBg(ctx: Ctx2D, s: number, rng: () => number): void {
+    95→  const g = ctx.createRadialGradient(s * 0.5, s * 0.42, s * 0.1, s * 0.5, s * 0.5, s * 0.75);
+    96→  g.addColorStop(0, '#31427e');
+    97→  g.addColorStop(1, '#171c3f');
+    98→  ctx.fillStyle = g;
+    99→  ctx.fillRect(0, 0, s, s);
+   100→
+   101→  const neb = ctx.createRadialGradient(s * 0.72, s * 0.24, 0, s * 0.72, s * 0.24, s * 0.34);
+   102→  neb.addColorStop(0, 'rgba(150,110,220,0.35)');
+   103→  neb.addColorStop(1, 'rgba(150,110,220,0)');
+   104→  ctx.fillStyle = neb;
+   105→  ctx.fillRect(0, 0, s, s);
+   106→  const neb2 = ctx.createRadialGradient(s * 0.2, s * 0.7, 0, s * 0.2, s * 0.7, s * 0.3);
+   107→  neb2.addColorStop(0, 'rgba(80,160,220,0.25)');
+   108→  neb2.addColorStop(1, 'rgba(80,160,220,0)');
+   109→  ctx.fillStyle = neb2;
+   110→  ctx.fillRect(0, 0, s, s);
+   111→
+   112→  for (let i = 0; i < 70; i++) {
+   113→    const x = rng() * s;
+   114→    const y = rng() * s;
+   115→    const r = (0.004 + rng() * 0.01) * s;
+   116→    ctx.fillStyle = rng() > 0.85 ? 'rgba(255,230,150,0.95)' : 'rgba(255,255,255,0.85)';
+   117→    circle(ctx, x, y, r);
+   118→    ctx.fill();
+   119→  }
+   120→  for (let i = 0; i < 5; i++) {
+   121→    const x = rng() * s;
+   122→    const y = rng() * s * 0.8;
+   123→    const r = s * 0.016;
+   124→    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+   125→    ctx.lineWidth = s * 0.004;
+   126→    ctx.lineCap = 'round';
+   127→    ctx.beginPath();
+   128→    ctx.moveTo(x - r, y); ctx.lineTo(x + r, y);
+   129→    ctx.moveTo(x, y - r); ctx.lineTo(x, y + r);
+   130→    ctx.stroke();
+   131→  }
+   132→}
+   133→
+   134→/* ---------- Солнце и облака ---------- */
+   135→
+   136→export function drawSun(ctx: Ctx2D, s: number, pal: PuzzlePalette, x = 0.82, y = 0.15, r = 0.075): void {
+   137→  const cx = s * x;
+   138→  const cy = s * y;
+   139→  const cr = s * r;
+   140→  ctx.save();
+   141→  ctx.strokeStyle = 'rgba(255,200,60,0.85)';
+   142→  ctx.lineWidth = s * 0.011;
+   143→  ctx.lineCap = 'round';
+   144→  for (let i = 0; i < 12; i++) {
+   145→    const a = (i * Math.PI) / 6;
+   146→    ctx.beginPath();
+   147→    ctx.moveTo(cx + Math.cos(a) * cr * 1.35, cy + Math.sin(a) * cr * 1.35);
+   148→    ctx.lineTo(cx + Math.cos(a) * cr * 1.8, cy + Math.sin(a) * cr * 1.8);
+   149→    ctx.stroke();
+   150→  }
+   151→  const g = ctx.createRadialGradient(cx - cr * 0.3, cy - cr * 0.3, cr * 0.2, cx, cy, cr);
+   152→  g.addColorStop(0, '#fff3bf');
+   153→  g.addColorStop(1, pal.sun);
+   154→  ctx.fillStyle = g;
+   155→  circle(ctx, cx, cy, cr);
+   156→  ctx.fill();
+   157→  ctx.strokeStyle = 'rgba(230,145,20,0.5)';
+   158→  ctx.lineWidth = s * 0.004;
+   159→  ctx.stroke();
+   160→  ctx.restore();
+   161→}
+   162→
+   163→export function drawMoonGlow(ctx: Ctx2D, s: number): void {
+   164→  ctx.save();
+   165→  ctx.fillStyle = 'rgba(255,244,214,0.9)';
+   166→  circle(ctx, s * 0.8, s * 0.14, s * 0.05);
+   167→  ctx.fill();
+   168→  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+   169→  circle(ctx, s * 0.8 - s * 0.018, s * 0.14 - s * 0.01, s * 0.042);
+   170→  ctx.fill();
+   171→  ctx.restore();
+   172→}
+   173→
+   174→export function drawCloud(ctx: Ctx2D, s: number, x: number, y: number, k: number, alpha = 0.92): void {
+   175→  ctx.save();
+   176→  ctx.globalAlpha = alpha;
+   177→  ctx.fillStyle = '#ffffff';
+   178→  circle(ctx, x, y, k);
+   179→  ctx.fill();
+   180→  circle(ctx, x + k * 1.1, y - k * 0.45, k * 1.2);
+   181→  ctx.fill();
+   182→  circle(ctx, x + k * 2.3, y, k * 0.9);
+   183→  ctx.fill();
+   184→  ctx.fillRect(x - k * 0.4, y, k * 3.3, k * 0.9);
+   185→  ctx.restore();
+   186→}
+   187→
+   188→/* ---------- Холмы, земля, горы ---------- */
+   189→
+   190→export function drawHillBand(
+   191→  ctx: Ctx2D, s: number, base: number, amp: number, color: string,
+   192→  rng: () => number, waves = 3,
+   193→): void {
+   194→  ctx.fillStyle = color;
+   195→  ctx.beginPath();
+   196→  ctx.moveTo(0, s);
+   197→  ctx.lineTo(0, s * base);
+   198→  for (let w = 0; w < waves; w++) {
+   199→    const x0 = (s * w) / waves;
+   200→    const x1 = (s * (w + 1)) / waves;
+   201→    const peak = s * (base - amp - rng() * amp * 0.6);
+   202→    ctx.quadraticCurveTo((x0 + x1) / 2, peak, x1, s * base);
+   203→  }
+   204→  ctx.lineTo(s, s);
+   205→  ctx.closePath();
+   206→  ctx.fill();
+   207→}
+   208→
+   209→export function drawGround(ctx: Ctx2D, s: number, pal: PuzzlePalette, from = 0.82): void {
+   210→  ctx.fillStyle = pal.ground;
+   211→  ctx.fillRect(0, s * from, s, s * (1 - from) + 1);
+   212→  ctx.strokeStyle = pal.outlineSoft;
+   213→  ctx.lineWidth = s * 0.004;
+   214→  ctx.beginPath();
+   215→  ctx.moveTo(0, s * from);
+   216→  ctx.lineTo(s, s * from);
+   217→  ctx.stroke();
+   218→}
+   219→
+   220→export function drawSnowMountain(
+   221→  ctx: Ctx2D, s: number, x: number, base: number, w: number, h: number,
+   222→  body: string, snow: string, outline: string,
+   223→): void {
+   224→  ctx.save();
+   225→  ctx.beginPath();
+   226→  ctx.moveTo(x - w / 2, base);
+   227→  ctx.lineTo(x - w * 0.08, base - h);
+   228→  ctx.lineTo(x, base - h * 1.06);
+   229→  ctx.lineTo(x + w * 0.1, base - h);
+   230→  ctx.lineTo(x + w / 2, base);
+   231→  ctx.closePath();
+   232→  ctx.fillStyle = body;
+   233→  ctx.fill();
+   234→  ctx.strokeStyle = outline;
+   235→  ctx.lineWidth = s * 0.005;
+   236→  ctx.lineJoin = 'round';
+   237→  ctx.stroke();
+   238→  ctx.beginPath();
+   239→  ctx.moveTo(x - w * 0.3, base - h * 0.62);
+   240→  ctx.lineTo(x - w * 0.08, base - h);
+   241→  ctx.lineTo(x, base - h * 1.06);
+   242→  ctx.lineTo(x + w * 0.1, base - h);
+   243→  ctx.lineTo(x + w * 0.32, base - h * 0.6);
+   244→  ctx.quadraticCurveTo(x + w * 0.12, base - h * 0.68, x + w * 0.02, base - h * 0.6);
+   245→  ctx.quadraticCurveTo(x - w * 0.12, base - h * 0.7, x - w * 0.3, base - h * 0.62);
+   246→  ctx.closePath();
+   247→  ctx.fillStyle = snow;
+   248→  ctx.fill();
+   249→  ctx.restore();
+   250→}
+   251→
+   252→/* ---------- Цветы, трава, деревья ---------- */
+   253→
+   254→export function drawFlower(ctx: Ctx2D, s: number, x: number, y: number, petal: string, r = 0.013): void {
+   255→  const fr = s * r;
+   256→  ctx.fillStyle = petal;
+   257→  for (let p = 0; p < 5; p++) {
+   258→    const a = (p * Math.PI * 2) / 5;
+   259→    circle(ctx, x + Math.cos(a) * fr, y + Math.sin(a) * fr, fr * 0.75);
+   260→    ctx.fill();
+   261→  }
+   262→  ctx.fillStyle = '#fde047';
+   263→  circle(ctx, x, y, fr * 0.55);
+   264→  ctx.fill();
+   265→}
+   266→
+   267→export function drawGrassTuft(ctx: Ctx2D, s: number, x: number, y: number, h: number, color: string): void {
+   268→  ctx.strokeStyle = color;
+   269→  ctx.lineWidth = s * 0.006;
+   270→  ctx.lineCap = 'round';
+   271→  for (const dx of [-0.6, -0.2, 0.2, 0.6]) {
+   272→    ctx.beginPath();
+   273→    ctx.moveTo(x, y);
+   274→    ctx.quadraticCurveTo(x + dx * h * 0.4, y - h * 0.6, x + dx * h * 0.8, y - h);
+   275→    ctx.stroke();
+   276→  }
+   277→}
+   278→
+   279→export function drawTree(ctx: Ctx2D, s: number, x: number, base: number, h: number, outline: string): void {
+   280→  const trunkW = h * 0.13;
+   281→  ctx.fillStyle = '#8a5a33';
+   282→  ctx.strokeStyle = outline;
+   283→  ctx.lineWidth = s * 0.004;
+   284→  ctx.beginPath();
+   285→  ctx.rect(x - trunkW / 2, base - h * 0.4, trunkW, h * 0.4);
+   286→  ctx.fill();
+   287→  ctx.stroke();
+   288→  const crown = ['#57c15c', '#3fae63', '#2e9050'];
+   289→  for (let i = 0; i < 3; i++) {
+   290→    const cy = base - h * (0.55 + i * 0.22);
+   291→    const cr = h * (0.3 - i * 0.06);
+   292→    ctx.fillStyle = crown[i];
+   293→    circle(ctx, x, cy, cr);
+   294→    ctx.fill();
+   295→    ctx.stroke();
+   296→  }
+   297→}
+   298→
+   299→export function drawPalm(ctx: Ctx2D, s: number, x: number, base: number, h: number, outline: string): void {
+   300→  ctx.save();
+   301→  ctx.strokeStyle = '#9c6b3f';
+   302→  ctx.lineWidth = h * 0.09;
+   303→  ctx.lineCap = 'round';
+   304→  ctx.beginPath();
+   305→  ctx.moveTo(x, base);
+   306→  ctx.quadraticCurveTo(x + h * 0.12, base - h * 0.5, x + h * 0.04, base - h * 0.85);
+   307→  ctx.stroke();
+   308→  const topX = x + h * 0.04;
+   309→  const topY = base - h * 0.85;
+   310→  ctx.fillStyle = '#3fae63';
+   311→  ctx.strokeStyle = outline;
+   312→  ctx.lineWidth = s * 0.004;
+   313→  for (let i = 0; i < 6; i++) {
+   314→    const a = Math.PI + (i / 5) * Math.PI;
+   315→    ctx.beginPath();
+   316→    ctx.moveTo(topX, topY);
+   317→    ctx.quadraticCurveTo(
+   318→      topX + Math.cos(a) * h * 0.28, topY + Math.sin(a) * h * 0.3 - h * 0.1,
+   319→      topX + Math.cos(a) * h * 0.42, topY + Math.sin(a) * h * 0.34,
+   320→    );
+   321→    ctx.quadraticCurveTo(
+   322→      topX + Math.cos(a) * h * 0.24, topY + Math.sin(a) * h * 0.22 + h * 0.05,
+   323→      topX, topY,
+   324→    );
+   325→    ctx.fill();
+   326→    ctx.stroke();
+   327→  }
+   328→  ctx.restore();
+   329→}
+   330→
+   331→/* ---------- Город ---------- */
+   332→
+   333→export function drawCitySkyline(ctx: Ctx2D, s: number, base: number, rng: () => number, color: string): void {
+   334→  let x = 0;
+   335→  while (x < s) {
+   336→    const w = s * (0.07 + rng() * 0.09);
+   337→    const h = s * (0.08 + rng() * 0.16);
+   338→    ctx.fillStyle = color;
+   339→    ctx.fillRect(x, base - h, w, h);
+   340→    ctx.fillStyle = 'rgba(255,240,180,0.75)';
+   341→    for (let wy = base - h + s * 0.015; wy < base - s * 0.015; wy += s * 0.035) {
+   342→      for (let wx = x + s * 0.012; wx < x + w - s * 0.02; wx += s * 0.03) {
+   343→        ctx.fillRect(wx, wy, s * 0.014, s * 0.018);
+   344→      }
+   345→    }
+   346→    x += w + s * 0.015;
+   347→  }
+   348→}
+   349→
+   350→/* ---------- Море ---------- */
+   351→
+   352→export function drawSeaWater(ctx: Ctx2D, s: number): void {
+   353→  const g = ctx.createLinearGradient(0, 0, 0, s);
+   354→  g.addColorStop(0, '#8fe3f7');
+   355→  g.addColorStop(0.5, '#4bc0d9');
+   356→  g.addColorStop(1, '#1f8fae');
+   357→  ctx.fillStyle = g;
+   358→  ctx.fillRect(0, 0, s, s);
+   359→  ctx.save();
+   360→  ctx.globalAlpha = 0.18;
+   361→  ctx.fillStyle = '#ffffff';
+   362→  for (let i = 0; i < 4; i++) {
+   363→    ctx.beginPath();
+   364→    const bx = s * (0.1 + i * 0.25);
+   365→    ctx.moveTo(bx, 0);
+   366→    ctx.lineTo(bx + s * 0.1, 0);
+   367→    ctx.lineTo(bx + s * 0.26, s);
+   368→    ctx.lineTo(bx + s * 0.06, s);
+   369→    ctx.closePath();
+   370→    ctx.fill();
+   371→  }
+   372→  ctx.restore();
+   373→}
+   374→
+   375→export function drawBubbles(ctx: Ctx2D, s: number, rng: () => number, n = 16): void {
+   376→  ctx.save();
+   377→  ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+   378→  ctx.fillStyle = 'rgba(255,255,255,0.28)';
+   379→  ctx.lineWidth = s * 0.003;
+   380→  for (let i = 0; i < n; i++) {
+   381→    const x = rng() * s;
+   382→    const y = rng() * s;
+   383→    const r = s * (0.006 + rng() * 0.014);
+   384→    circle(ctx, x, y, r);
+   385→    ctx.fill();
+   386→    ctx.stroke();
+   387→  }
+   388→  ctx.restore();
+   389→}
+   390→
+   391→export function drawSeaweed(ctx: Ctx2D, s: number, x: number, base: number, h: number, sway: number): void {
+   392→  ctx.save();
+   393→  ctx.strokeStyle = '#2e9e6b';
+   394→  ctx.lineWidth = s * 0.012;
+   395→  ctx.lineCap = 'round';
+   396→  for (let i = -1; i <= 1; i++) {
+   397→    ctx.beginPath();
+   398→    ctx.moveTo(x + i * s * 0.012, base);
+   399→    ctx.quadraticCurveTo(x + i * s * 0.012 + sway * s * 0.03, base - h * 0.5, x + i * s * 0.02 + sway * s * 0.05, base - h);
+   400→    ctx.stroke();
+   401→  }
+   402→  ctx.restore();
+   403→}
+   404→
+   405→/* ---------- Рельсы ---------- */
+   406→
+   407→export function drawRails(ctx: Ctx2D, s: number, y: number): void {
+   408→  ctx.save();
+   409→  ctx.strokeStyle = '#7a6a55';
+   410→  ctx.lineWidth = s * 0.014;
+   411→  ctx.beginPath();
+   412→  ctx.moveTo(0, y);
+   413→  ctx.lineTo(s, y);
+   414→  ctx.stroke();
+   415→  ctx.strokeStyle = '#5f5346';
+   416→  ctx.lineWidth = s * 0.02;
+   417→  for (let x = s * 0.04; x < s; x += s * 0.09) {
+   418→    ctx.beginPath();
+   419→    ctx.moveTo(x, y - s * 0.022);
+   420→    ctx.lineTo(x + s * 0.02, y + s * 0.022);
+   421→    ctx.stroke();
+   422→  }
+   423→  ctx.restore();
+   424→}
+   425→
+   426→/* ---------- Фоны сцен ---------- */
+   427→
+   428→export interface SceneContext {
+   429→  ctx: Ctx2D;
+   430→  s: number;
+   431→  sceneId: string;
+   432→  rng: () => number;
+   433→  pal: PuzzlePalette;
+   434→  outline: string;
+   435→  outlineSoft: string;
+   436→}
+   437→
+   438→export type SceneBgPainter = (c: SceneContext) => void;
+   439→
+   440→export const SCENE_BACKGROUNDS: Record<string, SceneBgPainter> = {
+   441→  'steam-locomotive': (c) => paintCountryside(c, 0.78),
+   442→  'speed-train': (c) => paintMountainPass(c),
+   443→  'cargo-train': (c) => paintWarmPrairie(c),
+   444→  'house-build': (c) => paintCityOutskirts(c),
+   445→  excavator: (c) => paintDirtSite(c),
+   446→  'crane-blocks': (c) => paintCityOutskirts(c),
+   447→  'planet-earth': (c) => paintSpaceLite(c),
+   448→  volcano: (c) => paintVolcanoLand(c),
+   449→  mountains: (c) => paintAlpineLand(c),
+   450→  bear: (c) => paintForestClearing(c),
+   451→  bunny: (c) => paintFlowerMeadow(c),
+   452→  cat: (c) => paintCozyRoom(c),
+   453→  diplodocus: (c) => paintJungle(c),
+   454→  trex: (c) => paintJungle(c),
+   455→  triceratops: (c) => paintJungle(c),
+   456→  rocket: (c) => paintSpaceBg(c),
+   457→  'saturn-planets': (c) => paintSpaceBg(c),
+   458→  'moon-rover': (c) => paintMoonSurface(c),
+   459→  clownfish: (c) => paintUnderwater(c),
+   460→  sailboat: (c) => paintOpenSea(c),
+   461→  octopus: (c) => paintUnderwater(c),
+   462→  'formula-car': (c) => paintRaceTrack(c, true),
+   463→  kart: (c) => paintRaceTrack(c, false),
+   464→  'rally-car': (c) => paintDirtRoad(c),
+   465→};
+   466→
+   467→function paintCountryside(c: SceneContext, horizon: number): void {
+   468→  const { ctx, s, rng, pal } = c;
+   469→  drawSky(ctx, s, pal);
+   470→  drawSun(ctx, s, pal);
+   471→  drawCloud(ctx, s, s * 0.18, s * 0.14, s * 0.035);
+   472→  drawCloud(ctx, s, s * 0.52, s * 0.2, s * 0.028, 0.8);
+   473→  drawHillBand(ctx, s, horizon - 0.1, 0.05, pal.hillFar, rng, 2);
+   474→  drawHillBand(ctx, s, horizon - 0.03, 0.04, pal.hillMid, rng, 3);
+   475→  drawGround(ctx, s, pal, horizon);
+   476→  drawRails(ctx, s, s * (horizon + 0.07));
+   477→}
+   478→
+   479→function paintMountainPass(c: SceneContext): void {
+   480→  const { ctx, s, rng, pal, outline } = c;
+   481→  drawSky(ctx, s, pal);
+   482→  drawSun(ctx, s, pal, 0.15, 0.14, 0.06);
+   483→  drawSnowMountain(ctx, s, s * 0.25, s * 0.72, s * 0.5, s * 0.5, '#a9bed6', '#ffffff', outline);
+   484→  drawSnowMountain(ctx, s, s * 0.75, s * 0.74, s * 0.55, s * 0.42, '#c3d2e4', '#ffffff', outline);
+   485→  drawHillBand(ctx, s, 0.78, 0.03, pal.hillMid, rng, 3);
+   486→  drawGround(ctx, s, pal, 0.85);
+   487→  drawRails(ctx, s, s * 0.9);
+   488→}
+   489→
+   490→function paintWarmPrairie(c: SceneContext): void {
+   491→  const { ctx, s, rng, pal } = c;
+   492→  drawSky(ctx, s, pal);
+   493→  drawSun(ctx, s, pal, 0.8, 0.14, 0.07);
+   494→  drawCloud(ctx, s, s * 0.3, s * 0.16, s * 0.03, 0.85);
+   495→  drawHillBand(ctx, s, 0.74, 0.05, '#e8b87f', rng, 2);
+   496→  drawHillBand(ctx, s, 0.82, 0.04, '#dba86e', rng, 3);
+   497→  drawGround(ctx, s, pal, 0.86);
+   498→  drawRails(ctx, s, s * 0.91);
+   499→}
+   500→
+   501→function paintCityOutskirts(c: SceneContext): void {
+   502→  const { ctx, s, rng, pal } = c;
+   503→  drawSky(ctx, s, pal);
+   504→  drawSun(ctx, s, pal);
+   505→  drawCloud(ctx, s, s * 0.24, s * 0.13, s * 0.03, 0.85);
+   506→  drawCitySkyline(ctx, s, s * 0.62, rng, pal.hillMid);
+   507→  drawHillBand(ctx, s, 0.66, 0.02, pal.hillFar, rng, 3);
+   508→  drawGround(ctx, s, pal, 0.72);
+   509→}
+   510→
+   511→function paintDirtSite(c: SceneContext): void {
+   512→  const { ctx, s, rng, pal } = c;
+   513→  drawSky(ctx, s, pal);
+   514→  drawSun(ctx, s, pal, 0.16, 0.15, 0.06);
+   515→  drawCloud(ctx, s, s * 0.6, s * 0.14, s * 0.028, 0.8);
+   516→  drawHillBand(ctx, s, 0.7, 0.03, pal.hillFar, rng, 2);
+   517→  drawGround(ctx, s, pal, 0.74);
+   518→  ctx.fillStyle = '#b08954';
+   519→  ellipse(ctx, s * 0.2, s * 0.88, s * 0.13, s * 0.055);
+   520→  ctx.fill();
+   521→  ctx.fillStyle = '#9a7644';
+   522→  ellipse(ctx, s * 0.82, s * 0.9, s * 0.1, s * 0.045);
+   523→  ctx.fill();
+   524→}
+   525→
+   526→function paintSpaceLite(c: SceneContext): void {
+   527→  drawSpaceBg(c.ctx, c.s, c.rng);
+   528→}
+   529→
+   530→function paintVolcanoLand(c: SceneContext): void {
+   531→  const { ctx, s, rng, pal } = c;
+   532→  drawSky(ctx, s, pal);
+   533→  const g = ctx.createLinearGradient(0, s * 0.3, 0, s);
+   534→  g.addColorStop(0, 'rgba(255,150,80,0.35)');
+   535→  g.addColorStop(1, 'rgba(255,80,40,0)');
+   536→  ctx.fillStyle = g;
+   537→  ctx.fillRect(0, 0, s, s);
+   538→  drawHillBand(ctx, s, 0.78, 0.04, '#b06a5a', rng, 2);
+   539→  drawGround(ctx, s, { ...pal, ground: '#8c5f50' }, 0.84);
+   540→}
+   541→
+   542→function paintAlpineLand(c: SceneContext): void {
+   543→  const { ctx, s, rng, pal, outline } = c;
+   544→  drawSky(ctx, s, pal);
+   545→  drawSun(ctx, s, pal, 0.18, 0.14, 0.06);
+   546→  drawSnowMountain(ctx, s, s * 0.3, s * 0.66, s * 0.55, s * 0.52, '#7d93b5', '#ffffff', outline);
+   547→  drawSnowMountain(ctx, s, s * 0.78, s * 0.7, s * 0.5, s * 0.6, '#93a9c9', '#ffffff', outline);
+   548→  drawHillBand(ctx, s, 0.76, 0.03, '#6da58f', rng, 3);
+   549→  drawGround(ctx, s, pal, 0.84);
+   550→}
+   551→
+   552→function paintForestClearing(c: SceneContext): void {
+   553→  const { ctx, s, rng, pal, outline } = c;
+   554→  drawSky(ctx, s, pal);
+   555→  drawSun(ctx, s, pal, 0.16, 0.13, 0.06);
+   556→  drawCloud(ctx, s, s * 0.55, s * 0.12, s * 0.026, 0.85);
+   557→  drawTree(ctx, s, s * 0.12, s * 0.68, s * 0.42, outline);
+   558→  drawTree(ctx, s, s * 0.88, s * 0.66, s * 0.34, outline);
+   559→  drawHillBand(ctx, s, 0.72, 0.03, pal.hillMid, rng, 2);
+   560→  drawGround(ctx, s, pal, 0.8);
+   561→}
+   562→
+   563→function paintFlowerMeadow(c: SceneContext): void {
+   564→  const { ctx, s, rng, pal } = c;
+   565→  drawSky(ctx, s, pal);
+   566→  drawSun(ctx, s, pal, 0.8, 0.13, 0.065);
+   567→  drawCloud(ctx, s, s * 0.22, s * 0.15, s * 0.03);
+   568→  drawHillBand(ctx, s, 0.7, 0.04, pal.hillFar, rng, 2);
+   569→  drawGround(ctx, s, pal, 0.78);
+   570→  const petals = ['#f472b6', '#facc15', '#ffffff', '#a78bfa', '#fb923c'];
+   571→  for (let i = 0; i < 12; i++) {
+   572→    drawFlower(ctx, s, rng() * s, s * (0.84 + rng() * 0.12), petals[i % petals.length]);
+   573→  }
+   574→  drawGrassTuft(ctx, s, s * 0.12, s * 0.95, s * 0.05, '#2f9e44');
+   575→  drawGrassTuft(ctx, s, s * 0.86, s * 0.97, s * 0.06, '#2f9e44');
+   576→}
+   577→
+   578→function paintCozyRoom(c: SceneContext): void {
+   579→  const { ctx, s, pal } = c;
+   580→  ctx.fillStyle = '#fde8d7';
+   581→  ctx.fillRect(0, 0, s, s * 0.78);
+   582→  ctx.fillStyle = '#d9a06b';
+   583→  ctx.fillRect(0, s * 0.78, s, s * 0.22);
+   584→  ctx.strokeStyle = 'rgba(120,70,30,0.25)';
+   585→  ctx.lineWidth = s * 0.003;
+   586→  for (let i = 1; i < 5; i++) {
+   587→    ctx.beginPath();
+   588→    ctx.moveTo(0, s * (0.78 + i * 0.045));
+   589→    ctx.lineTo(s, s * (0.78 + i * 0.045));
+   590→    ctx.stroke();
+   591→  }
+   592→  ctx.fillStyle = pal.skyTop;
+   593→  ctx.strokeStyle = '#8a5a33';
+   594→  ctx.lineWidth = s * 0.012;
+   595→  strokeRoundRect(ctx, s * 0.06, s * 0.08, s * 0.24, s * 0.3, s * 0.015);
+   596→  strokeRoundRect(ctx, s * 0.66, s * 0.08, s * 0.24, s * 0.3, s * 0.015);
+   597→  ctx.fillStyle = pal.sun;
+   598→  circle(ctx, s * 0.18, s * 0.2, s * 0.05);
+   599→  ctx.fill();
+   600→  ctx.fillStyle = 'rgba(230,73,128,0.35)';
+   601→  ellipse(ctx, s * 0.5, s * 0.9, s * 0.3, s * 0.07);
+   602→  ctx.fill();
+   603→}
+   604→
+   605→function paintJungle(c: SceneContext): void {
+   606→  const { ctx, s, rng, pal, outline } = c;
+   607→  drawSky(ctx, s, pal);
+   608→  drawSun(ctx, s, pal, 0.2, 0.12, 0.06);
+   609→  ctx.fillStyle = '#8f7a8f';
+   610→  ctx.beginPath();
+   611→  ctx.moveTo(s * 0.6, s * 0.72);
+   612→  ctx.lineTo(s * 0.75, s * 0.4);
+   613→  ctx.lineTo(s * 0.9, s * 0.72);
+   614→  ctx.closePath();
+   615→  ctx.fill();
+   616→  drawCloud(ctx, s, s * 0.78, s * 0.3, s * 0.03, 0.7);
+   617→  drawPalm(ctx, s, s * 0.12, s * 0.78, s * 0.5, outline);
+   618→  drawPalm(ctx, s, s * 0.9, s * 0.8, s * 0.42, outline);
+   619→  drawGround(ctx, s, pal, 0.8);
+   620→  drawGrassTuft(ctx, s, s * 0.3, s * 0.96, s * 0.07, '#2e8b57');
+   621→  drawGrassTuft(ctx, s, s * 0.72, s * 0.98, s * 0.06, '#2e8b57');
+   622→}
+   623→
+   624→function paintSpaceBg(c: SceneContext): void {
+   625→  drawSpaceBg(c.ctx, c.s, c.rng);
+   626→}
+   627→
+   628→function paintMoonSurface(c: SceneContext): void {
+   629→  const { ctx, s, rng } = c;
+   630→  drawSpaceBg(ctx, s, rng);
+   631→  const g = ctx.createLinearGradient(0, s * 0.72, 0, s);
+   632→  g.addColorStop(0, '#cfc9c0');
+   633→  g.addColorStop(1, '#a8a199');
+   634→  ctx.fillStyle = g;
+   635→  ctx.beginPath();
+   636→  ctx.moveTo(0, s * 0.8);
+   637→  ctx.quadraticCurveTo(s * 0.5, s * 0.74, s, s * 0.81);
+   638→  ctx.lineTo(s, s);
+   639→  ctx.lineTo(0, s);
+   640→  ctx.closePath();
+   641→  ctx.fill();
+   642→  ctx.fillStyle = 'rgba(90,85,80,0.4)';
+   643→  for (let i = 0; i < 6; i++) {
+   644→    const x = rng() * s;
+   645→    const y = s * (0.84 + rng() * 0.13);
+   646→    const r = s * (0.015 + rng() * 0.025);
+   647→    ellipse(ctx, x, y, r, r * 0.4);
+   648→    ctx.fill();
+   649→  }
+   650→}
+   651→
+   652→function paintUnderwater(c: SceneContext): void {
+   653→  const { ctx, s, rng } = c;
+   654→  drawSeaWater(ctx, s);
+   655→  drawBubbles(ctx, s, rng);
+   656→  ctx.fillStyle = '#f0dfae';
+   657→  ctx.beginPath();
+   658→  ctx.moveTo(0, s * 0.88);
+   659→  ctx.quadraticCurveTo(s * 0.3, s * 0.84, s * 0.55, s * 0.89);
+   660→  ctx.quadraticCurveTo(s * 0.8, s * 0.93, s, s * 0.88);
+   661→  ctx.lineTo(s, s);
+   662→  ctx.lineTo(0, s);
+   663→  ctx.closePath();
+   664→  ctx.fill();
+   665→  const corals: Array<[number, string]> = [[0.12, '#f28cae'], [0.85, '#ffa94d'], [0.55, '#b197fc']];
+   666→  for (const [cx, col] of corals) {
+   667→    ctx.strokeStyle = col;
+   668→    ctx.lineWidth = s * 0.014;
+   669→    ctx.lineCap = 'round';
+   670→    for (let i = -2; i <= 2; i++) {
+   671→      ctx.beginPath();
+   672→      ctx.moveTo(s * cx, s * 0.9);
+   673→      ctx.quadraticCurveTo(s * cx + i * s * 0.012, s * 0.82, s * cx + i * s * 0.028, s * 0.76);
+   674→      ctx.stroke();
+   675→    }
+   676→  }
+   677→  drawSeaweed(ctx, s, s * 0.3, s * 0.9, s * 0.12, 1);
+   678→  drawSeaweed(ctx, s, s * 0.72, s * 0.92, s * 0.1, -1);
+   679→}
+   680→
+   681→function paintOpenSea(c: SceneContext): void {
+   682→  const { ctx, s, rng, pal } = c;
+   683→  drawSky(ctx, s, pal);
+   684→  drawSun(ctx, s, pal, 0.82, 0.12, 0.065);
+   685→  drawCloud(ctx, s, s * 0.2, s * 0.14, s * 0.028, 0.85);
+   686→  // Волны
+   687→  const g = ctx.createLinearGradient(0, s * 0.62, 0, s);
+   688→  g.addColorStop(0, '#3b9dd4');
+   689→  g.addColorStop(1, '#1f6fa8');
+   690→  ctx.fillStyle = g;
+   691→  ctx.beginPath();
+   692→  ctx.moveTo(0, s * 0.68);
+   693→  for (let x = 0; x <= s; x += s * 0.125) {
+   694→    ctx.quadraticCurveTo(x + s * 0.0625, s * 0.65, x + s * 0.125, s * 0.68);
+   695→  }
+   696→  ctx.lineTo(s, s);
+   697→  ctx.lineTo(0, s);
+   698→  ctx.closePath();
+   699→  ctx.fill();
+   700→  // Белые гребешки
+   701→  ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+   702→  ctx.lineWidth = s * 0.006;
+   703→  ctx.lineCap = 'round';
+   704→  for (let i = 0; i < 6; i++) {
+   705→    const wx = rng() * s;
+   706→    const wy = s * (0.74 + rng() * 0.2);
+   707→    ctx.beginPath();
+   708→    ctx.moveTo(wx - s * 0.04, wy);
+   709→    ctx.quadraticCurveTo(wx, wy - s * 0.02, wx + s * 0.04, wy);
+   710→    ctx.stroke();
+   711→  }
+   712→}
+   713→
+   714→/* Гоночная трасса: асфальт, поребрики, стартовая шашечка */
+   715→function paintRaceTrack(c: SceneContext, isFormula: boolean): void {
+   716→  const { ctx, s, rng, pal } = c;
+   717→  drawSky(ctx, s, pal);
+   718→  drawSun(ctx, s, pal, 0.84, 0.11, 0.06);
+   719→  drawCloud(ctx, s, s * 0.16, s * 0.13, s * 0.03);
+   720→  drawCloud(ctx, s, s * 0.6, s * 0.2, s * 0.024, 0.8);
+   721→
+   722→  // Трибуны вдали (для формулы)
+   723→  if (isFormula) {
+   724→    ctx.save();
+   725→    fillRoundRect(ctx, s * 0.04, s * 0.38, s * 0.92, s * 0.1, s * 0.012);
+   726→    paint(ctx, '#dbe4ff', pal.outlineSoft, s * 0.004);
+   727→    for (let i = 0; i < 12; i++) {
+   728→      ctx.fillStyle = ['#fa5252', '#ffd43b', '#4dabf7', '#69db7c'][i % 4];
+   729→      ctx.fillRect(s * (0.06 + i * 0.075), s * 0.4, s * 0.05, s * 0.035);
+   730→    }
+   731→    ctx.restore();
+   732→  } else {
+   733→    drawHillBand(ctx, s, 0.44, 0.045, pal.hillFar, rng, 2);
+   734→  }
+   735→
+   736→  // Трава до и после трассы
+   737→  ctx.fillStyle = pal.ground;
+   738→  ctx.fillRect(0, s * 0.5, s, s * 0.12);
+   739→  ctx.fillRect(0, s * 0.92, s, s * 0.08);
+   740→
+   741→  // Асфальт
+   742→  const road = ctx.createLinearGradient(0, s * 0.62, 0, s * 0.92);
+   743→  road.addColorStop(0, '#868e96');
+   744→  road.addColorStop(1, '#5c6167');
+   745→  ctx.fillStyle = road;
+   746→  ctx.fillRect(0, s * 0.62, s, s * 0.3);
+   747→
+   748→  // Белая пунктирная разметка
+   749→  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+   750→  for (let i = 0; i < 5; i++) {
+   751→    ctx.fillRect(s * (0.05 + i * 0.2), s * 0.755, s * 0.09, s * 0.012);
+   752→  }
+   753→
+   754→  // Красно-белый поребрик по верхнему краю
+   755→  for (let i = 0; i < 10; i++) {
+   756→    ctx.fillStyle = i % 2 === 0 ? '#fa5252' : '#f8f9fa';
+   757→    ctx.fillRect(s * (i * 0.1), s * 0.6, s * 0.1, s * 0.025);
+   758→  }
+   759→
+   760→  // Стартовая шашечка
+   761→  const cq = s * 0.022;
+   762→  for (let r = 0; r < 2; r++) {
+   763→    for (let col = 0; col < 16; col++) {
+   764→      ctx.fillStyle = (r + col) % 2 === 0 ? '#212529' : '#f8f9fa';
+   765→      ctx.fillRect(s * 0.68 + col * cq, s * 0.86 + r * cq, cq, cq);
+   766→    }
+   767→  }
+   768→
+   769→  // Светофор для формулы
+   770→  if (isFormula) {
+   771→    ctx.save();
+   772→    ctx.fillStyle = '#343a40';
+   773→    fillRoundRect(ctx, s * 0.45, s * 0.52, s * 0.1, s * 0.05, s * 0.008);
+   774→    ctx.fillStyle = '#2f9e44';
+   775→    circle(ctx, s * 0.478, s * 0.545, s * 0.012);
+   776→    ctx.fill();
+   777→    circle(ctx, s * 0.5, s * 0.545, s * 0.012);
+   778→    ctx.fill();
+   779→    circle(ctx, s * 0.522, s * 0.545, s * 0.012);
+   780→    ctx.fill();
+   781→    ctx.restore();
+   782→  }
+   783→}
+   784→
+   785→/* Грязевая дорога для ралли */
+   786→function paintDirtRoad(c: SceneContext): void {
+   787→  const { ctx, s, rng, pal } = c;
+   788→  drawSky(ctx, s, pal);
+   789→  drawSun(ctx, s, pal, 0.8, 0.12, 0.055);
+   790→  drawCloud(ctx, s, s * 0.24, s * 0.15, s * 0.028);
+   791→  drawHillBand(ctx, s, 0.42, 0.05, pal.hillFar, rng, 2);
+   792→  drawHillBand(ctx, s, 0.5, 0.05, pal.hillMid, rng, 3);
+   793→
+   794→  // Трава по краям
+   795→  ctx.fillStyle = pal.ground;
+   796→  ctx.fillRect(0, s * 0.56, s, s * 0.06);
+   797→  ctx.fillRect(0, s * 0.94, s, s * 0.06);
+   798→
+   799→  // Грунтовая дорога
+   800→  const road = ctx.createLinearGradient(0, s * 0.62, 0, s * 0.94);
+   801→  road.addColorStop(0, '#c49a6c');
+   802→  road.addColorStop(1, '#a97e50');
+   803→  ctx.fillStyle = road;
+   804→  ctx.fillRect(0, s * 0.62, s, s * 0.32);
+   805→
+   806→  // Колеи
+   807→  ctx.strokeStyle = 'rgba(120,84,50,0.55)';
+   808→  ctx.lineWidth = s * 0.018;
+   809→  ctx.lineCap = 'round';
+   810→  for (const ry of [0.7, 0.8, 0.88]) {
+   811→    ctx.beginPath();
+   812→    ctx.moveTo(0, s * ry);
+   813→    for (let x = 0; x <= s; x += s * 0.2) {
+   814→      ctx.quadraticCurveTo(x + s * 0.1, s * (ry + 0.012), x + s * 0.2, s * ry);
+   815→    }
+   816→    ctx.stroke();
+   817→  }
+   818→
+   819→  // Камешки и кочки
+   820→  ctx.fillStyle = 'rgba(120,84,50,0.5)';
+   821→  for (let i = 0; i < 14; i++) {
+   822→    const x = rng() * s;
+   823→    const y = s * (0.64 + rng() * 0.26);
+   824→    ellipse(ctx, x, y, s * (0.006 + rng() * 0.012), s * (0.004 + rng() * 0.007));
+   825→    ctx.fill();
+   826→  }
+   827→
+   828→  // Кусты на обочине
+   829→  for (const bx of [0.08, 0.9]) {
+   830→    ctx.fillStyle = pal.hillNear;
+   831→    circle(ctx, s * bx, s * 0.6, s * 0.03);
+   832→    ctx.fill();
+   833→    circle(ctx, s * (bx + 0.03), s * 0.61, s * 0.024);
+   834→    ctx.fill();
+   835→  }
+   836→}
+   837→
+   838→/* Нарисовать фон сцены (без главного героя) */
+   839→export function paintBackground(ctx: Ctx2D, s: number, sceneId: string): PuzzlePalette {
+   840→  const pal = paletteForScene(sceneId);
+   841→  const rng = makeRng(seedFromText(sceneId) ^ 0x5f3a);
+   842→  const sc: SceneContext = {
+   843→    ctx, s, sceneId, rng, pal,
+   844→    outline: pal.outline,
+   845→    outlineSoft: pal.outlineSoft,
+   846→  };
+   847→  const painter = SCENE_BACKGROUNDS[sceneId];
+   848→  if (painter) painter(sc);
+   849→  else drawSky(ctx, s, pal);
+   850→  return pal;
+   851→}
+   852→

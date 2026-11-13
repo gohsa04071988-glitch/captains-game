@@ -1,0 +1,382 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ============================================================
+   МИР ПО КУСОЧКАМ — игровые стили
+   ============================================================ */
+
+@layer base {
+  html {
+    font-family: var(--font-kid), 'Segoe UI', Tahoma, sans-serif;
+  }
+  body {
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Фон приложения — нежный детский градиент */
+.kid-app {
+  background:
+    radial-gradient(1200px 500px at 15% -5%, #d8f7e3 0%, transparent 60%),
+    radial-gradient(1000px 500px at 90% 0%, #ffeef5 0%, transparent 55%),
+    radial-gradient(900px 600px at 50% 110%, #e5f2ff 0%, transparent 60%),
+    linear-gradient(180deg, #fdfcf7 0%, #f4fbe9 100%);
+  min-height: 100vh;
+}
+
+/* Заголовок */
+.kid-title {
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  background: linear-gradient(120deg, #f97316, #ef4444, #a855f7, #0ea5e9);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(255,255,255,0.8));
+}
+
+/* Плавающие украшения */
+.deco-cloud {
+  position: absolute;
+  font-size: 34px;
+  opacity: 0.55;
+  animation: float-y 7s ease-in-out infinite;
+  filter: saturate(0.85);
+}
+@keyframes float-y {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-16px) rotate(2deg); }
+}
+.float-slow { animation: float-y 5s ease-in-out infinite; }
+.bounce-slow { animation: bounce-kid 1.4s ease-in-out infinite; }
+@keyframes bounce-kid {
+  0%, 100% { transform: translateY(0) scale(1); }
+  40% { transform: translateY(-12px) scale(1.06); }
+  60% { transform: translateY(-6px) scale(0.98); }
+}
+
+/* v1.5: плашка «Новая наклейка!» на победном экране — радостно
+   выпрыгивает, как будто её только что приклеили */
+@keyframes sticker-pop {
+  0% { transform: scale(0.3) rotate(-8deg); opacity: 0; }
+  60% { transform: scale(1.12) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.sticker-new { animation: sticker-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both; }
+
+/* v1.8: оверлей отдыха — экран потихоньку затухает за минуту,
+   чтобы глазкам естественно захотелось отдохнуть */
+@keyframes break-dim {
+  from { opacity: 0; }
+  to { opacity: 0.93; }
+}
+.break-dim { animation: break-dim 60s ease-in forwards; }
+
+/* Карточка мира */
+.theme-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 22px 10px 16px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 2.5px solid rgba(255, 255, 255, 1);
+  box-shadow: 0 6px 18px rgba(80, 120, 90, 0.14), 0 2px 0 rgba(255,255,255,0.9) inset;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  touch-action: manipulation;
+}
+.theme-card:hover {
+  transform: translateY(-4px) rotate(-0.6deg);
+  box-shadow: 0 12px 26px rgba(80, 120, 90, 0.2);
+}
+.theme-card:active {
+  transform: scale(0.96);
+}
+
+/* Карточка пазла в списке */
+.puzzle-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 2.5px solid #fff;
+  box-shadow: 0 5px 16px rgba(80, 120, 90, 0.13);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  touch-action: manipulation;
+}
+.puzzle-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(80, 120, 90, 0.2);
+}
+.puzzle-card:active {
+  transform: scale(0.97);
+}
+
+/* Кнопки */
+.kid-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 16px;
+  border: 2.5px solid #fff;
+  background: linear-gradient(180deg, #ffffff, #eef4ea);
+  color: #475569;
+  font-weight: 800;
+  font-size: 14px;
+  box-shadow: 0 4px 10px rgba(80, 120, 90, 0.16), 0 1px 0 rgba(255,255,255,1) inset;
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.12s ease;
+  touch-action: manipulation;
+  min-height: 44px;
+}
+.kid-btn:hover { filter: brightness(1.03); transform: translateY(-1px); }
+.kid-btn:active { transform: scale(0.95); }
+.kid-btn-primary {
+  background: linear-gradient(180deg, #ffd43b, #fab005);
+  color: #5c3c00;
+  border-color: #fff3bf;
+  box-shadow: 0 4px 12px rgba(250, 176, 5, 0.4);
+}
+.kid-btn-danger {
+  background: linear-gradient(180deg, #ff8787, #fa5252);
+  color: #fff;
+  border-color: #ffc9c9;
+  box-shadow: 0 4px 12px rgba(250, 82, 82, 0.35);
+}
+.kid-btn-ghost {
+  background: rgba(255, 255, 255, 0.75);
+}
+
+/* Переключатель сложности */
+.kid-diff {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2.5px solid #fff;
+  box-shadow: 0 4px 10px rgba(80, 120, 90, 0.15);
+}
+.kid-diff-btn {
+  min-width: 44px;
+  min-height: 38px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-weight: 900;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  touch-action: manipulation;
+}
+.kid-diff-btn:hover { background: #f1f5f9; }
+.kid-diff-active {
+  background: linear-gradient(180deg, #63e6be, #38d9a9) !important;
+  color: #fff !important;
+  box-shadow: 0 3px 8px rgba(56, 217, 169, 0.45);
+}
+
+/* Игровое поле */
+.kid-board {
+  background: rgba(255, 255, 255, 0.6);
+  border: 3px solid #fff;
+  box-shadow:
+    0 14px 34px rgba(70, 110, 85, 0.18),
+    0 2px 0 rgba(255,255,255,1) inset;
+}
+
+/* Детали пазла */
+.pz-piece {
+  cursor: grab;
+  transition: filter 0.15s ease;
+  filter: drop-shadow(2px 3px 3px rgba(30, 40, 30, 0.25));
+}
+.pz-piece.pz-dragging {
+  cursor: grabbing;
+  filter: drop-shadow(5px 9px 8px rgba(30, 40, 30, 0.35)) brightness(1.05);
+  transform: scale(1.05);
+  transition: transform 0.1s ease;
+}
+.pz-piece.pz-snapped {
+  cursor: default;
+  filter: none;
+  animation: snap-in 0.28s ease;
+}
+@keyframes snap-in {
+  0% { transform: scale(1.08); }
+  55% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+/* Карточка победы */
+.kid-win-card {
+  background: linear-gradient(180deg, #fffef5, #fff7d6);
+  border: 3px solid #ffe066;
+  border-radius: 26px;
+  padding: 22px 18px;
+  box-shadow: 0 18px 44px rgba(60, 40, 0, 0.3);
+  animation: win-pop 0.45s cubic-bezier(0.2, 1.4, 0.5, 1);
+}
+@keyframes win-pop {
+  0% { transform: scale(0.5) rotate(-4deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* Конфетти */
+@keyframes confetti-fall {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--cx, 0px), 105vh) rotate(var(--rot, 360deg)); opacity: 0.9; }
+}
+@keyframes star-burst {
+  0% { transform: translate(0, 0) scale(0.4); opacity: 1; }
+  100% { transform: translate(var(--sx, 20px), var(--sy, -20px)) scale(1.15); opacity: 0; }
+}
+
+/* Аккуратный скроллбар для списков */
+.puzzle-list-scroll {
+  max-height: 60vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #b2d8c3 transparent;
+}
+.puzzle-list-scroll::-webkit-scrollbar { width: 8px; }
+.puzzle-list-scroll::-webkit-scrollbar-thumb {
+  background: #b2d8c3;
+  border-radius: 8px;
+}
+
+/* Поднос для деталей — полка под полем */
+.pz-tray {
+  background: rgba(255, 255, 255, 0.5);
+  border: 2px dashed rgba(255, 255, 255, 0.95);
+  box-shadow: inset 0 2px 10px rgba(70, 110, 85, 0.10);
+}

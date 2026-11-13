@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=loops&utm_source=ai-legible&utm_medium=owned&utm_content=comment&utm_id=22da79c9-a20e-473d-b873-d4d0ea00bf84
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Детские Пазлы (Джигсо)</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            background: #0f172a; color: #fff;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            overflow: hidden; touch-action: none;
+            user-select: none; -webkit-user-select: none;
+        }
+        /* Меню */
+        #menu {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: #0f172a; z-index: 5000;
+            display: flex; flex-direction: column; align-items: center; padding: 20px;
+            overflow-y: auto;
+        }
+        .theme-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 600px;
+        }
+        .theme-card {
+            background: #1e293b; border-radius: 15px; padding: 20px 10px;
+            text-align: center; cursor: pointer; border: 2px solid transparent; transition: 0.2s;
+        }
+        .theme-card:active { transform: scale(0.95); }
+        .theme-card .t-icon { font-size: 50px; display: block; margin-bottom: 10px; }
+        .theme-card .t-name { font-size: 18px; font-weight: bold; }
+        
+        .puzzle-list { display: none; width: 100%; max-width: 600px; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .puzzle-item {
+            background: #1e293b; border-radius: 10px; padding: 15px;
+            display: flex; align-items: center; cursor: pointer;
+        }
+        .puzzle-item:active { transform: scale(0.98); }
+        .puzzle-item .p-icon { font-size: 30px; margin-right: 15px; }
+        .puzzle-item .p-info { flex: 1; text-align: left; }
+        .puzzle-item .p-name { font-size: 16px; font-weight: bold; }
+        
+        /* Игровое поле */
+        #ui {
+            position: absolute; top: 0; left: 0; right: 0; padding: 10px;
+            background: rgba(15, 23, 42, 0.95); display: flex; flex-wrap: wrap;
+            gap: 10px; justify-content: center; align-items: center; z-index: 100;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: none;
+        }
+        button {
+            padding: 8px 16px; background: #38bdf8; color: #000;
+            border: none; border-radius: 8px; font-weight: bold;
+            cursor: pointer; font-size: 14px; transition: 0.2s;
+        }
+        button.active { background: #fbbf24; }
+        .danger { background: #f87171; }
+        
+        #board {
+            position: absolute; top: 60px; left: 0; right: 0; bottom: 0;
+            display: flex; justify-content: center; align-items: center; display: none;
+        }
+        #play-area {
+            position: relative; background: rgba(255,255,255,0.05);
+            border: 2px dashed #334155; border-radius: 12px;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5); overflow: hidden;
+        }
+        /* Сам кусочек пазла (canvas с вырезанной формой) */
+        #play-area { touch-action: none; }
+        .piece {
+            position: absolute; will-change: left, top;
+            pointer-events: none; /* попадание по форме считается в JS */
+            filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.5));
+            transition: transform 0.12s;
+        }
+        .piece.dragging { transform: scale(1.06); filter: drop-shadow(4px 10px 8px rgba(0,0,0,0.55)); z-index: 9999 !important; }
+        .piece.snapped { filter: none; }
+        
+        /* Успех */
+        #success-modal {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: #1e293b; padding: 30px; border-radius: 20px;
+            text-align: center; opacity: 0; pointer-events: none; transition: 0.3s;
+            z-index: 2000; border: 2px solid #38bdf8; width: 80%; max-width: 400px;
+        }
+        #success-modal.show { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+        h2 { color: #38bdf8; margin-top: 0; }
+        #theme-icon { font-size: 60px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<!-- ГЛАВНОЕ МЕНЮ -->
+<div id="menu">
+    <h2 style="color:#38bdf8; margin-bottom: 20px;">Выбери мир</h2>
+    <div class="theme-grid" id="theme-grid"></div>
+    
+    <!-- Список пазлов внутри темы -->
+    <div class="puzzle-list" id="puzzle-list"></div>
+    <button onclick="backToThemes()" style="margin-top: 20px; background:#475569; color:#fff; display:none;" id="back-theme-btn">← Назад к мирам</button>
+</div>
+
+<!-- ПАНЕЛЬ УПРАВЛЕНИЯ В ИГРЕ -->
+<div id="ui">
+    <button onclick="backToPuzzles()" style="background:#f87171;">← Меню</button>
+    <div style="display:flex; gap:5px;">
+        <button onclick="initGame(6)" class="diff-btn">6</button>
+        <button onclick="initGame(12)" class="diff-btn active">12</button>
+        <button onclick="initGame(24)" class="diff-btn">24</button>
+    </div>
+    <button onclick="toggleHint()" id="hint-btn">Скрыть образец</button>
+    <button onclick="toggleMute()" id="mute-btn">🔊</button>
+</div>
+
+<div id="board">
+    <div id="play-area"></div>
+</div>
+
+<div id="success-modal">
+    <div id="theme-icon">🎉</div>
+    <h2>Ура! Пазл собран!</h2>
+    <p id="story-content" style="font-size:16px; color:#cbd5e1; line-height:1.4;"></p>
+    <button onclick="playStory()" style="margin-bottom: 10px; width: 100%;">Послушать еще раз</button>
+    <button onclick="closeModal()" style="width: 100%; background: #475569; color: white;">Закрыть</button>
+</div>
+
+<script>
+// --- ДАННЫЕ ТЕМ И ПАЗЛОВ ---
+const THEMES = [
+    {
+        id: 'train', name: 'Поезд', icon: '🚂',
+        puzzles: [
+            { name: 'Паровозик', icon: '🚂', bg: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', instruction: 'Собери паровозик! Поставь детали на свои места.' },
+            { name: 'Скоростной поезд', icon: '🚄', bg: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)', instruction: 'Собери скоростной поезд! Найди место для всех деталей.' },
+            { name: 'Грузовой поезд', icon: '🚃', bg: 'linear-gradient(135deg, #fccb90 0%, #d57eeb 100%)', instruction: 'Собери грузовой поезд! Поставь тяжёлые вагоны.' }
+        ]
+    },
+    {
+        id: 'construction', name: 'Стройка', icon: '🚜',
+        puzzles: [
+            { name: 'Стройка дома', icon: '🏠', bg: 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)', instruction: 'Построй дом! Поставь стены и крышу.' },
+            { name: 'Экскаватор', icon: '🚜', bg: 'linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)', instruction: 'Собери экскаватор! Он копает землю.' },
+            { name: 'Кран и блоки', icon: '🏗️', bg: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', instruction: 'Поставь кран и подними блоки на высоту.' }
+        ]
+    },
+    {
+        id: 'earth', name: 'Земля', icon: '🌍',
+        puzzles: [
+            { name: 'Планета', icon: '🌍', bg: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)', instruction: 'Собери планету Земля!' },
+            { name: 'Вулкан', icon: '🌋', bg: 'linear-gradient(135deg, #fccb90 0%, #d57eeb 100%)', instruction: 'Собери вулкан! Он проснулся.' },
+            { name: 'Горы', icon: '🏔️', bg: 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)', instruction: 'Собери горы! Высокие вершины и снег.' }
+        ]
+    },
+    {
+        id: 'animals', name: 'Животные', icon: '🐶',
+        puzzles: [
+            { name: 'Мишка', icon: '🐻', bg: 'linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)', instruction: 'Собери мишку! Поставь голову и лапы.' },
+            { name: 'Зайка', icon: '🐰', bg: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', instruction: 'Собери зайку! У него длинные ушки.' },
+            { name: 'Котик', icon: '🐱', bg: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)', instruction: 'Собери котика! Поставь его и клубок.' }
+        ]
+    },
+    {
+        id: 'dinos', name: 'Динозавры', icon: '🦕',
+        puzzles: [
+            { name: 'Диплодок', icon: '🦕', bg: 'linear-gradient(135deg, #fccb90 0%, #d57eeb 100%)', instruction: 'Собери диплодока! У него длинная шея.' },
+            { name: 'Тираннозавр', icon: '🦖', bg: 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)', instruction: 'Собери тираннозавра! Он самый сильный.' },
+            { name: 'Трицератопс', icon: '🦕', bg: 'linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)', instruction: 'Собери трицератопса! У него три рога.' }
+        ]
+    }
+];
+
+// --- СОСТОЯНИЕ ---
+let currentThemeIdx = 0;
+let currentPuzzleIdx = 0;
+let isMuted = false;
+let showHint = true;
+let pieces = [];
+let gridCols = 2, gridRows = 3;
+let boardSize = 400, pieceW, pieceH;
+
+const playArea = document.getElementById('play-area');
+const boardContainer = document.getElementById('board');
+
+// --- ГЕНЕРАТОР ПАЗЛА (изогнутые детали на кривых Безье) ---
+// Каждая общая грань генерируется ОДИН раз, поэтому ушко одной детали
+// точно совпадает с выемкой соседней.
+let hEdges = [], vEdges = [], pieceMargin = 0, puzzleColors = ['#a8edea', '#fed6e3'];
+
+function rnd(min, max) { return min + Math.random() * (max - min); }
+
+// Нормализованная форма грани длиной 1: u — вдоль грани, v — поперёк
+function makeEdge() {
+    const j = 0.04;
+    const flip = Math.random() > 0.5 ? 1 : -1;
+    const a = rnd(-j, j), b = rnd(-j, j), c = rnd(-j, j), d = rnd(-j, j), e = rnd(-j, j);
+    const t = rnd(0.09, 0.11); // размер ушка
+    const pts = [
+        [0, 0],
+        [0.2, a],
+        [0.5 + b + d, -t + c],
+        [0.5 - t + b, t + c],
+        [0.5 - 2 * t + b - d, 3 * t + c],
+        [0.5 + 2 * t + b - d, 3 * t + c],
+        [0.5 + t + b, t + c],
+        [0.5 + b + d, -t + c],
+        [0.8, e],
+        [1, 0]
+    ];
+    return pts.map(([u, v]) => [u, v * flip]);
+}
+
+function generateEdges(cols, rows) {
+    hEdges = []; vEdges = [];
+    for (let r = 0; r <= rows; r++) {
+        hEdges[r] = [];
+        for (let c = 0; c < cols; c++) hEdges[r][c] = (r === 0 || r === rows) ? null : makeEdge();
+    }
+    for (let c = 0; c <= cols; c++) {
+        vEdges[c] = [];
+        for (let r = 0; r < rows; r++) vEdges[c][r] = (c === 0 || c === cols) ? null : makeEdge();
+    }
+}
+
+// Переводим нормализованную грань в координаты детали
+function edgeToPoints(edge, sx, sy, ex, ey, scale) {
+    const dx = ex - sx, dy = ey - sy, len = Math.hypot(dx, dy);
+    const nx = -dy / len, ny = dx / len; // перпендикуляр
+    return edge.map(([u, v]) => [sx + dx * u + nx * v * scale, sy + dy * u + ny * v * scale]);
+}
+
+function appendEdge(d, pts, reverse) {
+    const p = reverse ? pts.slice().reverse() : pts;
+    const f = (q) => `${q[0].toFixed(2)} ${q[1].toFixed(2)}`;
+    for (let i = 1; i < p.length; i += 3) d += `C ${f(p[i])}, ${f(p[i + 1])}, ${f(p[i + 2])} `;
+    return d;
+}
+
+function getJigsawPath(col, row, w, h, m) {
+    const s = Math.min(w, h);
+    const x0 = m, y0 = m, x1 = m + w, y1 = m + h;
+    let d = `M ${x0} ${y0} `;
+
+    // Верх (слева направо). Перпендикуляр смотрит вниз.
+    const top = hEdges[row][col];
+    d = top ? appendEdge(d, edgeToPoints(top, x0, y0, x1, y0, s), false) : d + `L ${x1} ${y0} `;
+
+    // Право (сверху вниз). Канонически грань идёт сверху вниз, перпендикуляр смотрит влево.
+    const right = vEdges[col + 1][row];
+    d = right ? appendEdge(d, edgeToPoints(right, x1, y0, x1, y1, s), false) : d + `L ${x1} ${y1} `;
+
+    // Низ (справа налево) — та же грань, что верх у детали ниже, проходим её в обратную сторону
+    const bottom = hEdges[row + 1][col];
+    d = bottom ? appendEdge(d, edgeToPoints(bottom, x0, y1, x1, y1, s), true) : d + `L ${x0} ${y1} `;
+
+    // Лево (снизу вверх) — та же грань, что право у детали слева
+    const left = vEdges[col][row];
+    d = left ? appendEdge(d, edgeToPoints(left, x0, y0, x0, y1, s), true) : d + `L ${x0} ${y0} `;
+
+    return d + 'Z';
+}
+
+// --- КАРТИНКА ПАЗЛА (рисуется на canvas, работает во всех браузерах) ---
+const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Twemoji Mozilla","EmojiOne Color",sans-serif';
+let puzzleCanvas = null, hintUrl = '';
+
+// Простая повторяемая "случайность", чтобы картинка была одинаковой
+function seeded(seed) {
+    let s = seed % 2147483647; if (s <= 0) s += 2147483646;
+    return () => (s = s * 16807 % 2147483647) / 2147483647;
+}
+
+function drawPuzzleImage(puzzle, size) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(size * dpr); cv.height = Math.round(size * dpr);
+    const ctx = cv.getContext('2d');
+    ctx.scale(dpr, dpr);
+    const R = seeded(puzzle.name.length * 977 + puzzle.name.charCodeAt(0) * 31 + puzzle.name.charCodeAt(1));
+
+    // Небо
+    const sky = ctx.createLinearGradient(0, 0, size, size);
+    sky.addColorStop(0, puzzleColors[0]);
+    sky.addColorStop(1, puzzleColors[1]);
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, size, size);
+
+    // Солнце с лучами
+    const sx = size * 0.82, sy = size * 0.16, sr = size * 0.08;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 200, 40, 0.9)'; ctx.lineWidth = size * 0.012; ctx.lineCap = 'round';
+    for (let i = 0; i < 12; i++) {
+        const a = i * Math.PI / 6;
+        ctx.beginPath();
+        ctx.moveTo(sx + Math.cos(a) * sr * 1.3, sy + Math.sin(a) * sr * 1.3);
+        ctx.lineTo(sx + Math.cos(a) * sr * 1.8, sy + Math.sin(a) * sr * 1.8);
+        ctx.stroke();
+    }
+    ctx.fillStyle = '#ffd43b';
+    ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // Облака
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    for (let i = 0; i < 3; i++) {
+        const cx = size * (0.1 + R() * 0.55), cy = size * (0.08 + R() * 0.18), k = size * (0.04 + R() * 0.025);
+        ctx.beginPath();
+        ctx.arc(cx, cy, k, 0, Math.PI * 2);
+        ctx.arc(cx + k * 1.1, cy - k * 0.4, k * 1.2, 0, Math.PI * 2);
+        ctx.arc(cx + k * 2.3, cy, k * 0.9, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Холмы
+    const hills = [['#86efac', 0.74], ['#4ade80', 0.82], ['#22c55e', 0.9]];
+    hills.forEach(([col, base], i) => {
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.moveTo(0, size);
+        ctx.lineTo(0, size * base);
+        const waves = 2 + i;
+        for (let w = 0; w < waves; w++) {
+            const x0 = size * w / waves, x1 = size * (w + 1) / waves;
+            ctx.quadraticCurveTo((x0 + x1) / 2, size * (base - 0.06 - R() * 0.05), x1, size * base);
+        }
+        ctx.lineTo(size, size);
+        ctx.closePath(); ctx.fill();
+    });
+
+    // Цветочки на траве
+    const flowers = ['#f472b6', '#facc15', '#ffffff', '#a78bfa', '#fb923c'];
+    for (let i = 0; i < 14; i++) {
+        const fx = R() * size, fy = size * (0.86 + R() * 0.12), fr = size * 0.012;
+        ctx.fillStyle = flowers[i % flowers.length];
+        for (let p = 0; p < 5; p++) {
+            const a = p * Math.PI * 2 / 5;
+            ctx.beginPath(); ctx.arc(fx + Math.cos(a) * fr, fy + Math.sin(a) * fr, fr * 0.8, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath(); ctx.arc(fx, fy, fr * 0.6, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Главный герой — большое эмодзи
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `${Math.round(size * 0.55)}px ${EMOJI_FONT}`;
+    ctx.shadowColor = 'rgba(0,0,0,0.25)'; ctx.shadowBlur = size * 0.03; ctx.shadowOffsetY = size * 0.015;
+    ctx.fillText(puzzle.icon, size / 2, size * 0.55);
+    ctx.restore();
+
+    // Название внизу
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `bold ${Math.round(size * 0.065)}px 'Segoe UI', Tahoma, sans-serif`;
+    ctx.lineWidth = size * 0.012; ctx.strokeStyle = 'rgba(15,23,42,0.6)'; ctx.lineJoin = 'round';
+    ctx.strokeText(puzzle.name, size / 2, size * 0.93);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(puzzle.name, size / 2, size * 0.93);
+    ctx.restore();
+
+    return cv;
+}
+
+// Бледная копия картинки для подсказки на поле
+function makeHintUrl(src, size) {
+    const cv = document.createElement('canvas');
+    cv.width = src.width; cv.height = src.height;
+    const ctx = cv.getContext('2d');
+    ctx.globalAlpha = 0.25;
+    ctx.drawImage(src, 0, 0);
+    return `url("${cv.toDataURL('image/png')}")`;
+}
+
+function randomPastel() {
+    return `hsl(${Math.floor(Math.random() * 360)}, 75%, 82%)`;
+}
+
+// --- ОТРИСОВКА МЕНЮ ---
+function renderThemes() {
+    document.getElementById('menu').style.display = 'flex';
+    document.getElementById('ui').style.display = 'none';
+    document.getElementById('board').style.display = 'none';
+    document.getElementById('puzzle-list').style.display = 'none';
+    document.getElementById('back-theme-btn').style.display = 'none';
+    document.getElementById('theme-grid').style.display = 'grid';
+    
+    const grid = document.getElementById('theme-grid');
+    grid.innerHTML = '';
+    THEMES.forEach((theme, idx) => {
+        const card = document.createElement('div');
+        card.className = 'theme-card';
+        card.innerHTML = `<span class="t-icon">${theme.icon}</span><div class="t-name">${theme.name}</div>`;
+        card.onclick = () => openTheme(idx);
+        grid.appendChild(card);
+    });
+}
+
+function openTheme(themeIdx) {
+    currentThemeIdx = themeIdx;
+    const theme = THEMES[themeIdx];
+    
+    document.getElementById('theme-grid').style.display = 'none';
+    document.getElementById('puzzle-list').style.display = 'flex';
+    document.getElementById('back-theme-btn').style.display = 'block';
+    
+    const list = document.getElementById('puzzle-list');
+    list.innerHTML = `<h2 style="color:#38bdf8; margin-bottom:10px;">${theme.name}</h2>`;
+    
+    theme.puzzles.forEach((puzzle, idx) => {
+        const item = document.createElement('div');
+        item.className = 'puzzle-item';
+        item.innerHTML = `
+            <div class="p-icon">${puzzle.icon}</div>
+            <div class="p-info">
+                <div class="p-name">${puzzle.name}</div>
+            </div>
+        `;
+        item.onclick = () => startPuzzle(idx);
+        list.appendChild(item);
+    });
+}
+
+function backToThemes() {
+    renderThemes();
+}
+
+function backToPuzzles() {
+    document.getElementById('menu').style.display = 'flex';
+    document.getElementById('ui').style.display = 'none';
+    document.getElementById('board').style.display = 'none';
+    document.getElementById('puzzle-list').style.display = 'flex';
+    document.getElementById('theme-grid').style.display = 'none';
+    document.getElementById('back-theme-btn').style.display = 'block';
+    window.speechSynthesis.cancel();
+}
+
+// --- ЗАПУСК ИГРЫ ---
+function startPuzzle(puzzleIdx) {
+    currentPuzzleIdx = puzzleIdx;
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('ui').style.display = 'flex';
+    document.getElementById('board').style.display = 'flex';
+    
+    const puzzle = THEMES[currentThemeIdx].puzzles[puzzleIdx];
+    // Озвучка конкретно этого уровня
+    speak(puzzle.instruction);
+    
+    // Запуск с дефолтным количеством деталей (12)
+    initGame(12);
+}
+
+function initGame(count) {
+    document.getElementById('success-modal').classList.remove('show');
+    playArea.innerHTML = '';
+    pieces = [];
+
+    // Настройка сетки
+    if (count === 6) { gridCols = 2; gridRows = 3; }
+    else if (count === 12) { gridCols = 3; gridRows = 4; }
+    else if (count === 24) { gridCols = 4; gridRows = 6; }
+
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    if (event && event.target && event.target.classList.contains('diff-btn')) {
+        event.target.classList.add('active');
+    } else {
+        document.querySelectorAll('.diff-btn')[1].classList.add('active');
+    }
+
+    // Размер поля
+    const maxBoardSize = Math.min(window.innerWidth - 20, window.innerHeight - 120, 800);
+    boardSize = maxBoardSize;
+    playArea.style.width = `${boardSize}px`;
+    playArea.style.height = `${boardSize}px`;
+    
+    pieceW = boardSize / gridCols;
+    pieceH = boardSize / gridRows;
+
+    const puzzle = THEMES[currentThemeIdx].puzzles[currentPuzzleIdx];
+    puzzleColors = [randomPastel(), randomPastel()];
+    puzzleCanvas = drawPuzzleImage(puzzle, boardSize);
+    hintUrl = makeHintUrl(puzzleCanvas, boardSize);
+
+    // Подсказка — бледный образец на поле
+    playArea.style.backgroundImage = showHint ? hintUrl : 'none';
+    playArea.style.backgroundSize = `${boardSize}px ${boardSize}px`;
+    playArea.style.backgroundRepeat = 'no-repeat';
+
+    // Запас вокруг детали под выпуклые ушки
+    pieceMargin = Math.min(pieceW, pieceH) * 0.32;
+    const m = pieceMargin;
+    generateEdges(gridCols, gridRows);
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const W = pieceW + 2 * m, H = pieceH + 2 * m;
+    const scale = puzzleCanvas.width / boardSize;
+
+    for (let r = 0; r < gridRows; r++) {
+        for (let c = 0; c < gridCols; c++) {
+            const path = new Path2D(getJigsawPath(c, r, pieceW, pieceH, m));
+
+            const cv = document.createElement('canvas');
+            cv.className = 'piece';
+            cv.width = Math.ceil(W * dpr); cv.height = Math.ceil(H * dpr);
+            cv.style.width = `${W}px`; cv.style.height = `${H}px`;
+            const ctx = cv.getContext('2d');
+            ctx.scale(dpr, dpr);
+
+            // Кусок картинки внутри формы детали
+            ctx.save();
+            ctx.clip(path);
+            const srcX = c * pieceW - m, srcY = r * pieceH - m;
+            ctx.drawImage(puzzleCanvas, srcX * scale, srcY * scale, W * scale, H * scale, 0, 0, W, H);
+            ctx.restore();
+
+            // Объём и контур
+            ctx.save();
+            ctx.clip(path);
+            ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+            ctx.stroke(path);
+            ctx.restore();
+            ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+            ctx.stroke(path);
+
+            const targetX = c * pieceW - m;
+            const targetY = r * pieceH - m;
+            const startX = -m + Math.random() * (boardSize - pieceW);
+            const startY = -m + Math.random() * (boardSize - pieceH);
+
+            cv.style.left = `${startX}px`;
+            cv.style.top = `${startY}px`;
+            cv.style.zIndex = 10 + Math.floor(Math.random() * 100);
+
+            const piece = { el: cv, path, x: startX, y: startY, targetX, targetY, snapped: false };
+            pieces.push(piece);
+            playArea.appendChild(cv);
+        }
+    }
+}
+
+// --- ПЕРЕТАСКИВАНИЕ ---
+// Один обработчик на всё поле: берём самую верхнюю деталь, в форму которой попал палец
+const hitCtx = document.createElement('canvas').getContext('2d');
+let drag = null;
+
+function pieceAt(x, y) {
+    const sorted = pieces.filter(p => !p.snapped)
+        .sort((a, b) => (parseInt(b.el.style.zIndex) || 0) - (parseInt(a.el.style.zIndex) || 0));
+    return sorted.find(p => hitCtx.isPointInPath(p.path, x - p.x, y - p.y)) || null;
+}
+
+playArea.addEventListener('pointerdown', (e) => {
+    const rect = playArea.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const p = pieceAt(x, y);
+    if (!p) return;
+    e.preventDefault();
+    drag = { p, offX: x - p.x, offY: y - p.y, id: e.pointerId };
+    p.el.classList.add('dragging');
+    p.el.style.zIndex = 9999;
+    playArea.setPointerCapture(e.pointerId);
+});
+
+playArea.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const rect = playArea.getBoundingClientRect();
+    const m = pieceMargin;
+    const p = drag.p;
+    p.x = Math.max(-m, Math.min(e.clientX - rect.left - drag.offX, boardSize - pieceW - m));
+    p.y = Math.max(-m, Math.min(e.clientY - rect.top - drag.offY, boardSize - pieceH - m));
+    p.el.style.left = `${p.x}px`;
+    p.el.style.top = `${p.y}px`;
+});
+
+function endDrag(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    const p = drag.p;
+    drag = null;
+    p.el.classList.remove('dragging');
+    p.el.style.zIndex = 10 + Math.floor(Math.random() * 100);
+    if (playArea.hasPointerCapture(e.pointerId)) playArea.releasePointerCapture(e.pointerId);
+
+    // Допуск стыковки
+    const tol = Math.max(25, Math.min(pieceW, pieceH) * 0.25);
+    if (Math.hypot(p.x - p.targetX, p.y - p.targetY) < tol) {
+        p.x = p.targetX; p.y = p.targetY;
+        p.el.style.left = `${p.x}px`;
+        p.el.style.top = `${p.y}px`;
+        p.snapped = true;
+        p.el.classList.add('snapped');
+        p.el.style.zIndex = 1;
+        checkWin();
+    }
+}
+playArea.addEventListener('pointerup', endDrag);
+playArea.addEventListener('pointercancel', endDrag);
+
+// --- ПОБЕДА И ЗВУКИ ---
+function checkWin() {
+    if (pieces.every(p => p.snapped)) {
+        setTimeout(() => {
+            const puzzle = THEMES[currentThemeIdx].puzzles[currentPuzzleIdx];
+            document.getElementById('story-content').innerText = "Отличная работа!";
+            document.getElementById('theme-icon').innerText = puzzle.icon;
+            document.getElementById('success-modal').classList.add('show');
+            speak("Молодец! Ты собрал пазл!");
+        }, 300);
+    }
+}
+
+function speak(text) {
+    if (isMuted) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ru-RU';
+    u.rate = 0.9;
+    window.speechSynthesis.speak(u);
+}
+
+function playStory() {
+    speak("Молодец! Ты собрал пазл!");
+}
+
+function toggleMute() {
+    isMuted = !isMuted;
+    const btn = document.getElementById('mute-btn');
+    btn.innerText = isMuted ? '🔇' : '🔊';
+    if (isMuted) window.speechSynthesis.cancel();
+}
+
+function toggleHint() {
+    showHint = !showHint;
+    const btn = document.getElementById('hint-btn');
+    if (showHint) {
+        btn.innerText = 'Скрыть образец';
+        playArea.style.backgroundImage = hintUrl;
+    } else {
+        btn.innerText = 'Показать образец';
+        playArea.style.backgroundImage = 'none';
+    }
+}
+
+function closeModal() {
+    document.getElementById('success-modal').classList.remove('show');
+}
+
+// --- СТАРТ ---
+window.onload = () => {
+    renderThemes();
+};
+</script>
+</body>
+</html><script async src="/.netlify/scripts/ar" data-netlify-deploy-id="6af36f94b5338b0bc904f933" data-netlify-site-id="22da79c9-a20e-473d-b873-d4d0ea00bf84" data-agent-runner-id="6af36f5b558129ea9ba2f75f"></script>

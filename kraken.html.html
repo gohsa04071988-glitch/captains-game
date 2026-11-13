@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>🐙 Кракен — демо боя (Капитаны островов)</title>
+<style>
+  :root{ --gold:#ffcf5c; --red:#ff4d5e; }
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  body{
+    background:radial-gradient(1200px 700px at 50% -10%, #1d1038 0%, #0c0716 62%);
+    color:#e8e0f8; font-family:'Segoe UI', Roboto, Arial, sans-serif;
+    display:flex; flex-direction:column; align-items:center; min-height:100vh; padding:8px 6px 20px;
+    user-select:none;
+  }
+  h1{ font-size:clamp(19px,4.6vw,27px); letter-spacing:1px; color:var(--gold);
+      text-shadow:0 0 18px rgba(255,150,40,.35); margin:4px 0 2px; text-align:center; }
+  .sub{ font-size:12px; color:#9a86c8; margin-bottom:8px; text-align:center; }
+  .hpwrap{ display:flex; align-items:center; gap:10px; width:min(96vw,660px); margin:2px 0 8px; }
+  .hplabel{ font-weight:700; font-size:14px; color:#ffb0c8; white-space:nowrap;
+            text-shadow:0 0 10px rgba(255,60,90,.5); }
+  .hpbar{ flex:1; height:16px; border-radius:9px; background:#241040; border:1px solid #6b3f96;
+          overflow:hidden; box-shadow:inset 0 2px 6px rgba(0,0,0,.6); }
+  .hpfill{ height:100%; width:100%; border-radius:8px;
+           background:linear-gradient(90deg,#ff2e4d,#ff7a3c);
+           box-shadow:0 0 12px rgba(255,60,60,.8); transition:width .5s ease; }
+  .hpwrap.hit .hpbar{ animation:hpflash .3s ease 2; }
+  @keyframes hpflash{ 50%{ filter:brightness(2.4); } }
+  .hptext{ font-size:13px; font-weight:700; color:#ffd0d8; min-width:56px; text-align:right; }
+  #sea{ width:min(96vw,660px); border-radius:12px; touch-action:manipulation; cursor:crosshair;
+        box-shadow:0 8px 30px rgba(0,0,0,.6), 0 0 0 1px #3a2060; }
+  #status{ min-height:28px; margin:9px 0 6px; font-size:clamp(14px,3.7vw,17px); font-weight:600;
+           color:#ffe9a8; text-align:center; text-shadow:0 0 12px rgba(255,200,80,.25); }
+  .btn{ font:600 15px 'Segoe UI',sans-serif; color:#1c0f05; background:linear-gradient(180deg,#ffd97a,#f0a93c);
+        border:none; border-radius:10px; padding:10px 22px; cursor:pointer;
+        box-shadow:0 4px 14px rgba(240,169,60,.35); }
+  .btn:active{ transform:translateY(1px); }
+  #overlay{ position:fixed; inset:0; background:rgba(5,2,12,.85); display:none;
+            align-items:center; justify-content:center; z-index:10; }
+  #overlay.show{ display:flex; }
+  .panel{ background:linear-gradient(180deg,#241243,#140a28); border:1px solid #6b3f96;
+          border-radius:16px; padding:26px 34px; text-align:center; max-width:88vw;
+          box-shadow:0 10px 40px rgba(0,0,0,.7); }
+  #oemoji{ font-size:52px; }
+  #otitle{ font-size:24px; font-weight:800; margin:6px 0 4px; color:var(--gold); }
+  #otext{ font-size:14px; color:#cbbcf0; margin-bottom:16px; }
+  .note{ font-size:11px; color:#7e6ba8; margin-top:10px; text-align:center; max-width:640px; line-height:1.5; }
+</style>
+</head>
+<body>
+  <h1>🐙 БИТВА С КРАКЕНОМ</h1>
+  <div class="sub">демо босс-режима • «Капитаны островов»</div>
+
+  <div class="hpwrap" id="hpwrap">
+    <div class="hplabel">🐙 КРАКЕН</div>
+    <div class="hpbar"><div class="hpfill" id="hpfill"></div></div>
+    <div class="hptext" id="hptext">HP: 9/9</div>
+  </div>
+
+  <canvas id="sea"></canvas>
+  <div id="status">Подготовка...</div>
+  <button class="btn" id="restart">🔄 Новая битва</button>
+  <div class="note">Монстр занимает зону 3×3 и живёт на <b>своём</b> поле (справа). Кракен <b>всплывает</b>, чтобы атаковать вас,
+    и <b>ныряет в пучину</b>, когда вы стреляете. Пока он на поверхности — бейте по нему.</div>
+
+  <div id="overlay">
+    <div class="panel">
+      <div id="oemoji">🏆</div>
+      <div id="otitle"></div>
+      <div id="otext"></div>
+      <button class="btn" id="again">⚔️ Новая битва</button>
+    </div>
+  </div>
+
+<script>
+'use strict';
+/* ================================================================
+   🐙 БИТВА С КРАКЕНОМ — автономное демо босс-режима
+   Чистый JS + Canvas, один файл, без зависимостей.
+   Кракен: зона 3x3, HP 9, живёт на СВОЁМ поле.
+   Всплывает -> атакует игрока (⚓/🛢️/🚢) -> ждёт выстрела -> ныряет.
+   ================================================================ */
+
+/* ---------- константы поля ---------- */
+const N = 10, CELL = 30;
+const BW = N * CELL;                 // 300 — сторона доски
+const M = 16, GAP = 26, TOP = 34;    // поля, зазор между досками, полоса заголовков
+const W = M * 2 + BW * 2 + GAP;      // 658
+const H = TOP + BW + 14;             // 348
+const PB = { x: M, y: TOP };                    // доска игрока (мой флот)
+const KB = { x: M + BW + GAP, y: TOP };         // доска кракена (его поле)
+const KHP_MAX = 9;
+
+const cv = document.getElementById('sea');
+const g  = cv.getContext('2d');
+const dpr = Math.min(window.devicePixelRatio || 1, 2);
+cv.width = W * dpr; cv.height = H * dpr;
+g.scale(dpr, dpr);
+
+const $ = id => document.getElementById(id);
+const statusEl = $('status');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const now = () => performance.now();
+const rnd = a => a[Math.floor(Math.random() * a.length)];
+const in3 = (r, c) => r >= K.y && r < K.y + 3 && c >= K.x && c < K.x + 3;
+
+/* ---------- состояние ---------- */
+let pGrid, pShips, pShot;   // доска игрока: корабли / выстрелы кракена
+let kShot;                  // доска кракена: мои выстрелы (1 мимо, 2 рана)
+let K;                      // кракен {x,y верхний угол, hp, mode, t0, flash}
+let phase = 'boot';         // boot | kraken | player | anim | over
+let GID = 0;                // номер партии: старые анимационные цепочки умирают при рестарте
+let fx = [];                // визуальные эффекты {x,y,type,t0,emoji}
+let shakeT0 = 0;
+let msg = '';
+
+/* ---------- расстановка флота игрока (4-3-2-2, без касаний) ---------- */
+function placeFleet(){
+  const grid = Array.from({length:N}, () => Array(N).fill(0));
+  const ships = [];
+  for (const len of [4,3,2,2]){
+    let guard = 0;
+    while (guard++ < 5000){
+      const hor = Math.random() < .5;
+      const r = Math.floor(Math.random() * (hor ? N : N - len + 1));
+      const c = Math.floor(Math.random() * (hor ? N - len + 1 : N));
+      const cells = []; let ok = true;
+      for (let i = 0; i < len; i++){
+        const rr = hor ? r : r + i, cc = hor ? c + i : c;
+        for (let dr = -1; dr <= 1 && ok; dr++)
+          for (let dc = -1; dc <= 1 && ok; dc++){
+            const nr = rr + dr, nc = cc + dc;
+            if (nr>=0 && nr<N && nc>=0 && nc<N && grid[nr][nc]) ok = false;
+          }
+        cells.push([rr, cc]);
+      }
+      if (ok){
+        cells.forEach(([rr,cc]) => grid[rr][cc] = 1);
+        ships.push({ cells, dead: 0 });
+        break;
+      }
+    }
+  }
+  return { grid, ships };
+}
+
+/* ---------- новый кракен ---------- */
+function spawnKraken(){
+  K = { x: Math.floor(Math.random()*8), y: Math.floor(Math.random()*8),
+        hp: KHP_MAX, mode: 'under', t0: now(), flash: 0 };
+}
+
+function moveKraken(){
+  const cur = K.x + ',' + K.y, cand = [];
+  for (let r = 0; r <= N-3; r++)
+    for (let c = 0; c <= N-3; c++){
+      if (r+','+c === cur) continue;
+      let clean = true;
+      for (let i = 0; i < 3 && clean; i++)
+        for (let j = 0; j < 3 && clean; j++)
+          if (kShot[r+i][c+j]) clean = false;
+      if (clean) cand.push([r, c]);
+    }
+  if (!cand.length)                       // страховка: поле почти прострелено
+    for (let r = 0; r <= N-3; r++)
+      for (let c = 0; c <= N-3; c++)
+        if (r+','+c !== cur) cand.push([r, c]);
+  const [r, c] = rnd(cand);
+  K.x = r; K.y = c;
+}
+
+/* ---------- статус / HP bar ---------- */
+function say(t){ msg = t; statusEl.textContent = t; }
+function updateHP(hurt){
+  $('hpfill').style.width = Math.max(0, K.hp) / KHP_MAX * 100 + '%';
+  $('hptext').textContent = 'HP: ' + Math.max(0, K.hp) + '/' + KHP_MAX;
+  if (hurt){
+    const w = $('hpwrap');
+    w.classList.remove('hit'); void w.offsetWidth; w.classList.add('hit');
+  }
+}
+
+/* ---------- ход кракена: всплытие + атака ---------- */
+function aliveShipCells(){
+  const out = [];
+  for (const s of pShips) for (const [r,c] of s.cells)
+    if (!pShot[r][c]) out.push([r,c]);
+  return out;
+}
+function krakenAttackCells(){
+  const kind = rnd(['anchor','barrel','wreck']);
+  if (kind === 'anchor'){                         // 🚨 меткий якорь — бьёт по кораблю
+    const live = aliveShipCells();
+    return { kind, cells: [ live.length ? rnd(live)
+                        : [Math.floor(Math.random()*N), Math.floor(Math.random()*N)] ] };
+  }
+  if (kind === 'barrel'){                         // 🛢️ бочка 2x2
+    const r = Math.floor(Math.random()*(N-1)), c = Math.floor(Math.random()*(N-1));
+    return { kind, cells: [[r,c],[r,c+1],[r+1,c],[r+1,c+1]] };
+  }
+  const hor = Math.random() < .5;                 // 🚢 обломки 1x3
+  const r = Math.floor(Math.random()*(hor ? N : N-2));
+  const c = Math.floor(Math.random()*(hor ? N-2 : N));
+  return { kind, cells: [0,1,2].map(i => hor ? [r, c+i] : [r+i, c]) };
+}
+
+async function krakenTurn(gid){
+  if (gid === undefined) gid = GID;
+  if (gid !== GID || phase === 'over') return;
+  phase = 'kraken';
+  K.mode = 'rise'; K.t0 = now();
+  say('🐙 Кракен всплывает из пучины...');
+  await sleep(950);
+  if (gid !== GID) return;
+  K.mode = 'full';
+
+  const atk = krakenAttackCells();
+  say(atk.kind === 'anchor' ? '⚓ Кракен мечет ЯКОРЬ!' :
+      atk.kind === 'barrel' ? '🛢️ Кракен пускает БОЧКУ!' :
+                              '🚢 Кракен бросает ОБЛОМКИ!');
+  await sleep(650);
+  if (gid !== GID) return;
+
+  for (const [r,c] of atk.cells){
+    const px = PB.x + c*CELL + CELL/2, py = PB.y + r*CELL + CELL/2;
+    fx.push({ x:px, y:py, type:'drop', t0: now(),
+              emoji: atk.kind==='anchor' ? '⚓' : atk.kind==='barrel' ? '🛢️' : '🚢' });
+    await sleep(380);
+    if (gid !== GID) return;
+    const hitShip = pGrid[r][c] === 1;
+    pShot[r][c] = hitShip ? 2 : 1;
+    fx.push({ x:px, y:py, type: hitShip ? 'boom' : 'splash', t0: now() });
+    if (hitShip){
+      shakeT0 = now();
+      for (const s of pShips)
+        if (s.cells.some(([rr,cc]) => rr===r && cc===c)){
+          s.dead++;
+          if (s.dead === s.cells.length) say('💀 Ваш корабль потоплен!');
+        }
+    }
+    await sleep(420);
+    if (gid !== GID) return;
+  }
+
+  if (aliveShipCells().length === 0){ gameOver(false, gid); return; }
+  say('Ваш ход — стреляйте по Кракену!');
+  phase = 'player';
+}
+
+/* ---------- выстрел игрока ---------- */
+async function playerShot(r, c){
+  if (phase !== 'player') return;
+  if (kShot[r][c]){ say('Здесь уже стреляли! Выберите другую клетку.'); return; }
+  const gid = GID;
+  phase = 'anim';
+
+  say('🌊 Кракен ныряет в пучину!');
+  K.mode = 'dive'; K.t0 = now();
+  await sleep(380);                                    // снаряд догоняет ныряющего
+  if (gid !== GID) return;
+
+  const wasHit = in3(r, c);
+  kShot[r][c] = wasHit ? 2 : 1;
+  fx.push({ x: KB.x + c*CELL + CELL/2, y: KB.y + r*CELL + CELL/2,
+            type: wasHit ? 'boom' : 'splash', t0: now() });
+
+  if (wasHit){
+    K.hp--; K.flash = 1; updateHP(true);
+    say('💥 ПОПАДАНИЕ по Кракену! HP: ' + K.hp + '/' + KHP_MAX);
+  } else {
+    say('💧 Мимо! Кракен скрылся в глубине.');
+  }
+
+  if (K.hp <= 0){
+    K.mode = 'dead'; K.t0 = now();
+    say('☠️ Кракен повержен — исчезает в пучине навсегда!');
+    await sleep(1500);
+    if (gid !== GID) return;
+    gameOver(true, gid); return;
+  }
+
+  await sleep(320);        // уходит под воду
+  if (gid !== GID) return;
+  moveKraken();            // молча меняет позицию, невидимый
+  await sleep(300);
+  if (gid !== GID) return;
+  krakenTurn(gid);
+}
+
+/* ---------- клики ---------- */
+cv.addEventListener('pointerdown', e => {
+  const rect = cv.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (W / rect.width);
+  const y = (e.clientY - rect.top)  * (H / rect.height);
+  if (x >= KB.x && x < KB.x + BW && y >= KB.y && y < KB.y + BW){
+    playerShot(Math.floor((y - KB.y) / CELL), Math.floor((x - KB.x) / CELL));
+  } else if (x >= PB.x && x < PB.x + BW && y >= PB.y && y < PB.y + BW){
+    say('Это ВАШЕ поле! Стрелять нужно по полю КРАКЕНА — справа.');
+  }
+});
+
+/* ---------- конец боя ---------- */
+function gameOver(win, gid){
+  if (gid !== undefined && gid !== GID) return;   // партия уже сменилась
+  phase = 'over';
+  K.mode = win ? 'dead' : 'full';
+  K.t0 = now();
+  $('oemoji').textContent = win ? '🏆' : '💀';
+  $('otitle').textContent = win ? 'ПОБЕДА!' : 'ФЛОТ ПОТОПЛЕН';
+  $('otext').textContent  = win ? 'Кракен повержен и навсегда ушёл в пучину.'
+                                : 'Кракен уничтожил все ваши корабли...';
+  $('overlay').classList.add('show');
+  say(win ? '🏆 Победа!' : '💀 Поражение...');
+}
+
+function newGame(){
+  $('overlay').classList.remove('show');
+  const f = placeFleet();
+  pGrid = f.grid; pShips = f.ships;
+  pShot = Array.from({length:N}, () => Array(N).fill(0));
+  kShot = Array.from({length:N}, () => Array(N).fill(0));
+  fx = [];
+  spawnKraken();
+  updateHP(false);
+  GID++;                    // новая партия: все старые цепочки анимаций недействительны
+  phase = 'anim';
+  krakenTurn(GID);
+}
+$('restart').onclick = newGame;
+$('again').onclick   = newGame;
+
+/* ================================================================
+   РИСОВАНИЕ
+   ================================================================ */
+
+/* ---------- вода и сетка ---------- */
+function drawBoard(bx, by, title, tcol){
+  const grad = g.createLinearGradient(0, by, 0, by + BW);
+  grad.addColorStop(0, '#2a1650');
+  grad.addColorStop(1, '#180c30');
+  g.fillStyle = grad;
+  g.fillRect(bx, by, BW, BW);
+
+  for (let r = 0; r < N; r++)
+    for (let c = 0; c < N; c++)
+      if ((r + c) % 2){
+        g.fillStyle = 'rgba(255,255,255,.022)';
+        g.fillRect(bx + c*CELL, by + r*CELL, CELL, CELL);
+      }
+
+  g.strokeStyle = 'rgba(150,110,230,.28)';
+  g.lineWidth = 1;
+  g.beginPath();
+  for (let i = 0; i <= N; i++){
+    g.moveTo(bx + i*CELL + .5, by);
+    g.lineTo(bx + i*CELL + .5, by + BW);
+    g.moveTo(bx, by + i*CELL + .5);
+    g.lineTo(bx + BW, by + i*CELL + .5);
+  }
+  g.stroke();
+  g.strokeStyle = 'rgba(170,130,255,.55)';
+  g.lineWidth = 1.6;
+  g.strokeRect(bx + .8, by + .8, BW - 1.6, BW - 1.6);
+
+  g.font = 'bold 15px "Segoe UI",sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = tcol;
+  g.fillText(title, bx + BW/2, 16);
+}
+
+/* ---------- корабли игрока (деревянные корпуса) ---------- */
+function drawShips(){
+  for (const s of pShips){
+    const rs = s.cells.map(p => p[0]), cs = s.cells.map(p => p[1]);
+    const hor = s.cells[0][0] === s.cells[1][0];
+    const x = PB.x + Math.min(...cs) * CELL, y = PB.y + Math.min(...rs) * CELL;
+    const w = (hor ? s.cells.length : 1) * CELL, h = (hor ? 1 : s.cells.length) * CELL;
+    const m = 4;
+    const grad = g.createLinearGradient(x, y, x, y + h);
+    grad.addColorStop(0, '#a37b4e');
+    grad.addColorStop(1, '#5c3f26');
+    g.fillStyle = grad;
+    roundRect(x + m, y + m, w - 2*m, h - 2*m, 7);
+    g.fill();
+    g.strokeStyle = '#2e1c10'; g.lineWidth = 1.6; g.stroke();
+    g.strokeStyle = 'rgba(60,36,18,.6)'; g.lineWidth = 1;
+    g.beginPath();
+    for (let i = 1; i < (hor ? s.cells.length : 1); i++){
+      g.moveTo(x + i*CELL + m, y + m + 2);
+      g.lineTo(x + i*CELL + m, y + h - m - 2);
+    }
+    for (let i = 1; i < (hor ? 1 : s.cells.length); i++){
+      g.moveTo(x + m + 2, y + i*CELL + m);
+      g.lineTo(x + w - m - 2, y + i*CELL + m);
+    }
+    g.stroke();
+    g.fillStyle = '#3a2413';
+    const lx = hor ? CELL*0.5 : CELL/2, ly = hor ? CELL/2 : CELL*0.5;
+    const nSeg = hor ? s.cells.length : s.cells.length;
+    for (let i = 0; i < nSeg; i++)
+      { g.beginPath();
+        g.arc(x + (hor ? i*CELL + lx : lx), y + (hor ? ly : i*CELL + ly), 2.4, 0, 7);
+        g.fill(); }
+  }
+  // разрушенные клетки — чёрный корпус + огонь
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (const s of pShips)
+    for (let i = 0; i < s.cells.length; i++){
+      if (i >= s.dead) continue;
+      const [r,c] = s.cells[i];
+      const x = PB.x + c*CELL, y = PB.y + r*CELL;
+      g.fillStyle = 'rgba(15,8,4,.8)';
+      g.fillRect(x + 3, y + 3, CELL - 6, CELL - 6);
+      g.font = Math.floor(CELL*.55) + 'px serif';
+      g.fillText('🔥', x + CELL/2, y + CELL/2 + 1);
+    }
+}
+
+function roundRect(x, y, w, h, r){
+  g.beginPath();
+  g.moveTo(x+r, y);
+  g.arcTo(x+w, y,   x+w, y+h, r);
+  g.arcTo(x+w, y+h, x,   y+h, r);
+  g.arcTo(x,   y+h, x,   y,   r);
+  g.arcTo(x,   y,   x+w, y,   r);
+  g.closePath();
+}
+
+/* ---------- маркеры выстрелов ---------- */
+function marker(bx, by, r, c, kind){
+  const x = bx + c*CELL + CELL/2, y = by + r*CELL + CELL/2;
+  if (kind === 1){                       // мимо — всплеск
+    g.strokeStyle = 'rgba(170,210,255,.85)'; g.lineWidth = 1.6;
+    g.beginPath(); g.arc(x, y, 6.5, 0, 7); g.stroke();
+    g.fillStyle = 'rgba(170,210,255,.9)';
+    g.beginPath(); g.arc(x, y, 2.2, 0, 7); g.fill();
+  } else {                               // попадание — разрыв
+    g.save(); g.translate(x, y);
+    for (let i = 0; i < 8; i++){
+      g.rotate(Math.PI/4);
+      g.fillStyle = i % 2 ? '#ff9b2e' : '#ffd23c';
+      g.beginPath();
+      g.moveTo(0, -9); g.lineTo(3.2, -3); g.lineTo(-3.2, -3);
+      g.closePath(); g.fill();
+    }
+    g.fillStyle = '#8a1d10';
+    g.beginPath(); g.arc(0, 0, 3.4, 0, 7); g.fill();
+    g.restore();
+  }
+}
+
+/* ================================================================
+   🐙 КРАКЕН — правильный облик: купол, глаза, клюв, 8 щупалец
+   ================================================================ */
+const WOUNDS = [[-.48,-.82],[.34,-1.02],[.06,-.5],[-.26,-.22],[.6,-.34],
+                [-.72,.02],[.78,.06],[.16,.08],[-.02,-1.18]];
+
+function drawKraken(cx, cy, t){
+  const s = CELL;
+  let p = Math.min(1, (now() - K.t0) / (K.mode==='dead' ? 1500 : 800));
+  let alpha = 1, dy = 0;
+  if (K.mode === 'rise'){ dy = (1-p)*1.6*s; alpha = Math.min(1, p*1.7); }
+  if (K.mode === 'dive'){ dy = p*1.6*s;     alpha = 1 - p*.92; }
+  if (K.mode === 'dead'){ dy = p*2.4*s;     alpha = 1 - p; }
+  if (K.mode === 'under') return;
+
+  g.save();
+  g.translate(cx, cy + dy + Math.sin(t*1.8)*2.5);   // дыхание
+  g.globalAlpha = alpha;
+
+  /* ---- зона поражения 3x3 (пунктир) ---- */
+  g.strokeStyle = 'rgba(255,90,110,' + (.22 + .12*Math.sin(t*3)) + ')';
+  g.lineWidth = 1.5; g.setLineDash([5,4]);
+  g.strokeRect(-1.5*s, -1.5*s, 3*s, 3*s);
+  g.setLineDash([]);
+
+  /* ---- 8 ЩУПАЛЕЦ (рисуются до головы) ---- */
+  const tent = [
+    // ЗАДНИЕ: уходят вниз-в стороны за телом
+    { pts: [[-.5,0],[-1.18,.62],[-.92,1.38]],    w:.32 },
+    { pts: [[ .5,0],[ 1.18,.62],[ .92,1.38]],    w:.32 },
+    { pts: [[-.68,-.12],[-1.42,.34],[-1.18,1.18]], w:.26 },
+    { pts: [[ .68,-.12],[ 1.42,.34],[ 1.18,1.18]], w:.26 },
+    // боковые завитки вверх + ПЕРЕДНИЕ толстые — рисуются ПЕРЕД головой
+    { pts: [[-.74,-.38],[-1.5,-.82],[-1.4,-1.66],[-.78,-1.32]], w:.24, front:1 },
+    { pts: [[ .74,-.38],[ 1.5,-.82],[ 1.4,-1.66],[ .78,-1.32]], w:.24, front:1 },
+    { pts: [[-.2,.1],[-.9,.75],[-.55,1.45]],     w:.4, front:1 },
+    { pts: [[ .2,.1],[ .9,.75],[ .55,1.45]],     w:.4, front:1 },
+    { pts: [[-.42,.05],[-1.25,.8],[-.98,1.5]],   w:.3, front:1 },
+    { pts: [[ .42,.05],[ 1.25,.8],[ .98,1.5]],   w:.3, front:1 }
+  ];
+  const drawTent = (tn, i) => {
+    const P = tn.pts.map((pt, k) => [
+      pt[0]*s + Math.sin(t*1.5 + i*.9 + k*1.3) * s*.07,
+      pt[1]*s + Math.cos(t*1.2 + i*1.4 + k)    * s*.05
+    ]);
+    // контур щупальца: туда по кривой и обратно со смещением по нормали
+    const steps = 22, L = [], R = [];
+    for (let k = 0; k <= steps; k++){
+      const u = k/steps;
+      const pt = bezier(P, u), d = bezierD(P, u);
+      const len = Math.hypot(d[0], d[1]) || 1;
+      const nx = -d[1]/len, ny = d[0]/len;
+      const w0 = tn.w * s * (1 - u*.85);
+      L.push([pt[0] + nx*w0, pt[1] + ny*w0]);
+      R.push([pt[0] - nx*w0, pt[1] - ny*w0]);
+    }
+    g.beginPath();
+    g.moveTo(L[0][0], L[0][1]);
+    L.forEach(pt => g.lineTo(pt[0], pt[1]));
+    R.reverse().forEach(pt => g.lineTo(pt[0], pt[1]));
+    g.closePath();
+    const tg = g.createLinearGradient(0, -1.4*s, 0, 1.5*s);
+    tg.addColorStop(0, '#5b3287'); tg.addColorStop(1, '#221040');
+    g.fillStyle = tg; g.fill();
+    g.strokeStyle = 'rgba(20,8,36,.8)'; g.lineWidth = 1; g.stroke();
+
+    // присоски вдоль внутренней стороны
+    for (let k = 4; k <= steps - 2; k += 3){
+      const u = k/steps;
+      const pt = bezier(P, u), d = bezierD(P, u);
+      const len = Math.hypot(d[0], d[1]) || 1;
+      const nx = d[1]/len, ny = -d[0]/len;
+      const off = tn.w * s * (1 - u*.85) * .55;
+      const rr = Math.max(1.8, s*.1*(1-u));
+      g.fillStyle = k % 2 ? '#f0a3ab' : '#d4737f';
+      g.beginPath();
+      g.arc(pt[0] + nx*off, pt[1] + ny*off, rr, 0, 7);
+      g.fill();
+    }
+  };
+  tent.forEach((tn, i) => { if (!tn.front) drawTent(tn, i); });
+
+  /* ---- широкая мантия: задний пласт + боковые лопасти (не шар!) ---- */
+  const hg2 = g.createLinearGradient(0, -1.4*s, 0, .5*s);
+  hg2.addColorStop(0, '#6d3d9e'); hg2.addColorStop(1, '#241040');
+  g.fillStyle = hg2;
+  g.beginPath(); g.ellipse(0, -.48*s, 1.1*s, .55*s, 0, 0, 7); g.fill();
+  for (const side of [-1, 1]){
+    g.beginPath();
+    g.ellipse(side*.76*s, -.3*s, .34*s, .44*s, side*.35, 0, 7);
+    g.fill();
+  }
+
+  /* ---- КУПОЛ головы ---- */
+  const hg = g.createLinearGradient(0, -1.5*s, 0, .4*s);
+  hg.addColorStop(0, '#9a5fc9'); hg.addColorStop(.45, '#5b2f8a'); hg.addColorStop(1, '#301549');
+  g.fillStyle = hg;
+  g.beginPath(); g.ellipse(0, -.66*s, .98*s, .62*s, 0, 0, 7); g.fill();
+  g.strokeStyle = 'rgba(24,10,40,.9)'; g.lineWidth = 1.4; g.stroke();
+  // бугры-наросты
+  g.fillStyle = 'rgba(30,12,52,.55)';
+  [[-.46,-1.0,.13],[.4,-1.06,.11],[-.06,-1.18,.09],[.62,-.78,.1],[-.74,-.66,.09]]
+    .forEach(([wx,wy,wr]) => {
+      g.beginPath(); g.ellipse(wx*s, wy*s, wr*s, wr*s*.75, 0, 0, 7); g.fill();
+    });
+  // блик
+  g.fillStyle = 'rgba(255,255,255,.14)';
+  g.beginPath(); g.ellipse(-.32*s, -.98*s, .38*s, .16*s, -.35, 0, 7); g.fill();
+
+  /* ---- РАНЫ (по числу потерянных HP) ---- */
+  const nw = KHP_MAX - K.hp;
+  for (let i = 0; i < nw && i < WOUNDS.length; i++){
+    const [wx, wy] = WOUNDS[i];
+    const wg = g.createRadialGradient(wx*s, wy*s, 1, wx*s, wy*s, s*.17);
+    wg.addColorStop(0, 'rgba(255,60,80,.95)'); wg.addColorStop(1, 'rgba(140,10,30,0)');
+    g.fillStyle = wg;
+    g.beginPath(); g.arc(wx*s, wy*s, s*.17, 0, 7); g.fill();
+    g.fillStyle = '#a3122a';
+    g.beginPath(); g.arc(wx*s, wy*s, s*.06, 0, 7); g.fill();
+  }
+
+  /* ---- СЕРДИТЫЕ БРОВИ (внутренний край опущен — злая гримаса) ---- */
+  for (const side of [-1, 1]){
+    g.fillStyle = '#180826';
+    g.beginPath();
+    g.ellipse(side*.42*s, -.66*s, .3*s, .11*s, -side*.45, 0, 7);
+    g.fill();
+  }
+  g.fillStyle = '#180826';                        // центральная складка
+  g.beginPath(); g.ellipse(0, -.6*s, .08*s, .14*s, 0, 0, 7); g.fill();
+
+  /* ---- ГЛАЗА: горящие оранжевые, щелевидный зрачок ---- */
+  const blink = (t % 4.6) < .14 ? .1 : 1;
+  for (const side of [-1, 1]){
+    const ex = side*.42*s, ey = -.5*s;
+    const glow = g.createRadialGradient(ex, ey, 1, ex, ey, .32*s);
+    glow.addColorStop(0, 'rgba(255,140,25,.7)'); glow.addColorStop(1, 'rgba(255,140,25,0)');
+    g.fillStyle = glow;
+    g.beginPath(); g.arc(ex, ey, .32*s, 0, 7); g.fill();
+    g.save(); g.translate(ex, ey); g.scale(1, blink);
+    const eg = g.createRadialGradient(0, 0, 1, 0, 0, .2*s);
+    eg.addColorStop(0, '#ffe08a'); eg.addColorStop(.55, '#ffab2e'); eg.addColorStop(1, '#e2570f');
+    g.fillStyle = eg;
+    g.beginPath(); g.ellipse(0, 0, .2*s, .16*s, 0, 0, 7); g.fill();
+    g.strokeStyle = '#3a0d14'; g.lineWidth = 1.2; g.stroke();
+    g.fillStyle = '#0d0208';                      // вертикальный зрачок
+    g.beginPath();
+    g.moveTo(0, -.13*s);
+    g.quadraticCurveTo(.055*s, 0, 0, .13*s);
+    g.quadraticCurveTo(-.055*s, 0, 0, -.13*s);
+    g.fill();
+    g.fillStyle = 'rgba(255,255,255,.85)';        // блик
+    g.beginPath(); g.arc(-.06*s, -.05*s, .025*s, 0, 7); g.fill();
+    g.restore();
+  }
+
+  // ПЕРЕДНИЕ щупальца и завитки — поверх головы, обвивают тело
+  tent.forEach((tn, i) => { if (tn.front) drawTent(tn, i); });
+
+  /* ---- КЛЮВ (пасть с зубами, между передними щупальцами) ---- */
+  const open = .5 + .5*Math.sin(t*.9);
+  const my = .38*s, mo = .08*open;
+  g.fillStyle = '#150726';
+  g.beginPath(); g.ellipse(0, my, .28*s, (.12+.08*open)*s, 0, 0, 7); g.fill();
+  g.fillStyle = '#07020d';
+  g.beginPath(); g.ellipse(0, my, .18*s, (.06+.05*open)*s, 0, 0, 7); g.fill();
+  g.fillStyle = '#efe6da';
+  for (let i = -2; i <= 2; i++){
+    g.beginPath();
+    g.moveTo(i*.12*s - .045*s, (my - mo*s) - .055*s);
+    g.lineTo(i*.12*s,          (my - mo*s) + .045*s);
+    g.lineTo(i*.12*s + .045*s, (my - mo*s) - .055*s);
+    g.closePath(); g.fill();
+    g.beginPath();
+    g.moveTo(i*.12*s - .045*s, (my + mo*s) + .055*s);
+    g.lineTo(i*.12*s,          (my + mo*s) - .045*s);
+    g.lineTo(i*.12*s + .045*s, (my + mo*s) + .055*s);
+    g.closePath(); g.fill();
+  }
+
+  /* ---- вспышка при попадании ---- */
+  if (K.flash > 0){
+    g.globalCompositeOperation = 'lighter';
+    g.fillStyle = 'rgba(255,120,90,' + (K.flash*.55) + ')';
+    g.beginPath(); g.ellipse(0, -.5*s, 1.05*s, 1.35*s, 0, 0, 7); g.fill();
+    g.globalCompositeOperation = 'source-over';
+  }
+
+  /* ---- пена и круги на воде у основания ---- */
+  g.fillStyle = 'rgba(220,205,255,.28)';
+  for (let i = 0; i < 7; i++){
+    const a = t*2 + i*2.2;
+    g.beginPath();
+    g.arc(Math.sin(a)*1.15*s, 1.3*s + Math.cos(a*.7)*.06*s, 3 + 2*Math.sin(a*1.3), 0, 7);
+    g.fill();
+  }
+  g.strokeStyle = 'rgba(220,205,255,.35)'; g.lineWidth = 1.5;
+  const rp = (t % 1.6) / 1.6;
+  g.beginPath(); g.ellipse(0, 1.32*s, (.4 + rp*1.1)*s, (.13 + rp*.3)*s, 0, 0, 7); g.stroke();
+
+  /* ---- частицы: брызги при всплытии / чернила при погружении ---- */
+  if (K.mode === 'rise' || K.mode === 'dive' || K.mode === 'dead'){
+    const n = 14;
+    for (let i = 0; i < n; i++){
+      const a = Math.PI + (i / (n-1)) * Math.PI;        // веером вверх
+      const dist = (K.mode === 'rise' ? p : 1-p) * 1.5*s;
+      const bx2 = Math.cos(a) * dist * 1.15, by2 = 1.2*s + Math.sin(a) * dist;
+      const ink = K.mode !== 'rise';
+      g.fillStyle = ink ? 'rgba(22,8,38,' + (.7*(1-p)) + ')'
+                        : 'rgba(230,220,255,' + (.8*(1-p)) + ')';
+      g.beginPath(); g.arc(bx2, by2, (ink ? 4.5 : 2.5) * (1 - p*.5), 0, 7); g.fill();
+    }
+  }
+  g.restore();
+}
+
+/* квадратичная/кубическая Безье и её производная */
+function bezier(P, u){
+  if (P.length === 3){
+    const a = 1-u;
+    return [a*a*P[0][0] + 2*a*u*P[1][0] + u*u*P[2][0],
+            a*a*P[0][1] + 2*a*u*P[1][1] + u*u*P[2][1]];
+  }
+  const a = 1-u;
+  return [a*a*a*P[0][0] + 3*a*a*u*P[1][0] + 3*a*u*u*P[2][0] + u*u*u*P[3][0],
+          a*a*a*P[0][1] + 3*a*a*u*P[1][1] + 3*a*u*u*P[2][1] + u*u*u*P[3][1]];
+}
+function bezierD(P, u){
+  if (P.length === 3)
+    return [2*(1-u)*(P[1][0]-P[0][0]) + 2*u*(P[2][0]-P[1][0]),
+            2*(1-u)*(P[1][1]-P[0][1]) + 2*u*(P[2][1]-P[1][1])];
+  const a = 1-u;
+  return [3*a*a*(P[1][0]-P[0][0]) + 6*a*u*(P[2][0]-P[1][0]) + 3*u*u*(P[3][0]-P[2][0]),
+          3*a*a*(P[1][1]-P[0][1]) + 6*a*u*(P[2][1]-P[1][1]) + 3*u*u*(P[3][1]-P[2][1])];
+}
+
+/* ---------- эффекты ---------- */
+function drawFx(){
+  const t = now();
+  fx = fx.filter(f => t - f.t0 < 620);
+  for (const f of fx){
+    const u = (t - f.t0) / 620;
+    if (f.type === 'drop'){                       // снаряд падает
+      const yy = f.y - (1-u) * 52;
+      g.font = '20px serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.globalAlpha = Math.min(1, u*3);
+      g.fillText(f.emoji, f.x, yy);
+      g.globalAlpha = 1;
+    } else if (f.type === 'boom'){
+      g.strokeStyle = 'rgba(255,150,40,' + (1-u) + ')'; g.lineWidth = 3;
+      g.beginPath(); g.arc(f.x, f.y, 4 + u*20, 0, 7); g.stroke();
+      g.fillStyle = 'rgba(255,220,90,' + (1-u) + ')';
+      for (let i = 0; i < 6; i++){
+        const a = i*1.05 + u*2;
+        g.beginPath();
+        g.arc(f.x + Math.cos(a)*(6+u*16), f.y + Math.sin(a)*(6+u*16), 2.2, 0, 7);
+        g.fill();
+      }
+    } else {                                      // splash
+      g.strokeStyle = 'rgba(170,215,255,' + (1-u) + ')'; g.lineWidth = 2;
+      g.beginPath(); g.arc(f.x, f.y, 3 + u*13, 0, 7); g.stroke();
+      g.fillStyle = 'rgba(170,215,255,' + (1-u) + ')';
+      g.beginPath(); g.arc(f.x, f.y, 2, 0, 7); g.fill();
+    }
+  }
+}
+
+/* ---------- главный цикл ---------- */
+let lastT = now();
+function loop(){
+  const t = now() / 1000;
+  const dt = Math.min(.05, (now() - lastT) / 1000);
+  lastT = now();
+  if (K && K.flash > 0) K.flash = Math.max(0, K.flash - dt*3);
+
+  g.clearRect(0, 0, W, H);
+  g.save();
+  if (shakeT0 && now() - shakeT0 < 320){
+    const k = (1 - (now() - shakeT0)/320) * 5;
+    g.translate((Math.random()-.5)*k, (Math.random()-.5)*k);
+  }
+
+  drawBoard(PB.x, PB.y, '⚓ ВАШ ФЛОТ', '#ffd97a');
+  drawBoard(KB.x, KB.y, '🐙 ПОЛЕ КРАКЕНА', '#c99bf5');
+  drawShips();
+  for (let r = 0; r < N; r++)
+    for (let c = 0; c < N; c++){
+      if (pShot[r][c]) marker(PB.x, PB.y, r, c, pShot[r][c]);
+      if (kShot[r][c]) marker(KB.x, KB.y, r, c, kShot[r][c]);
+    }
+
+  if (K){
+    // кракен рисуем с обрезкой по ЕГО доске
+    g.save();
+    g.beginPath(); g.rect(KB.x - 1, KB.y - 1, BW + 2, BW + 2); g.clip();
+    drawKraken(KB.x + (K.x + 1.5)*CELL, KB.y + (K.y + 1.5)*CELL, t);
+    g.restore();
+  }
+  drawFx();
+  g.restore();
+  requestAnimationFrame(loop);
+}
+
+newGame();
+loop();
+</script>
+</body>
+</html>

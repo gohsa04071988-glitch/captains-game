@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#03151f">
+<title>🐙 Кракен — босс морского боя | Капитаны островов</title>
+<style>
+:root{
+  --abyss:#03151f;--deep:#062a3d;--sea:#0a4a63;--shallow:#12798f;--foam:#7fe6e0;
+  --sand:#f4dfae;--ink:#0b2230;--coral:#ff5d73;--amber:#ffc247;--electric:#38e1ff;
+  --violet:#b98cff;--warm:#fff6e4;--cool:#cfe9f2;--cool2:#8fb6c6;--danger:#ff4d5e;
+  --font:"Nunito","Segoe UI",system-ui,-apple-system,Arial,sans-serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:var(--font);color:var(--warm);min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;padding:10px 6px 24px;
+  background:radial-gradient(1100px 640px at 50% -8%,#0a3550 0%,var(--abyss) 60%);
+  user-select:none;-webkit-user-select:none;overscroll-behavior-y:contain}
+h1{margin:2px 0 0;font-size:clamp(20px,4.6vw,28px);letter-spacing:1.5px;color:var(--amber);
+  text-shadow:0 0 18px rgba(255,150,40,.3);text-align:center;font-weight:900}
+.sub{font-size:11.5px;color:var(--cool2);margin:3px 0 10px;text-align:center;letter-spacing:.4px}
+.hud{width:min(97vw,670px);display:flex;flex-direction:column;gap:5px;margin-bottom:9px}
+.hudrow{display:flex;align-items:center;gap:9px}
+.hplabel{font-weight:800;font-size:12.5px;letter-spacing:.6px;white-space:nowrap;width:92px}
+.hplabel.k{color:var(--violet);text-shadow:0 0 10px rgba(185,140,255,.4)}
+.hplabel.f{color:var(--amber);text-shadow:0 0 10px rgba(255,194,71,.35)}
+.hpbar{flex:1;height:13px;border-radius:7px;background:#071e2b;border:1px solid rgba(127,230,224,.25);
+  overflow:hidden;box-shadow:inset 0 2px 5px rgba(0,0,0,.55)}
+.hpfill{height:100%;width:100%;border-radius:6px;transition:width .5s ease}
+#hpfill{background:linear-gradient(90deg,var(--danger),#ff8f5d);box-shadow:0 0 10px rgba(255,77,94,.7)}
+#flfill{background:linear-gradient(90deg,#e8b64c,var(--amber));box-shadow:0 0 10px rgba(255,194,71,.5)}
+.hptext{font-size:12px;font-weight:800;color:var(--sand);min-width:36px;text-align:right}
+#hpwrap.hit .hpbar{animation:hpflash .3s ease 2}
+@keyframes hpflash{50%{filter:brightness(2.3)}}
+#sea{width:min(97vw,670px);height:auto;border-radius:12px;touch-action:manipulation;cursor:crosshair;
+  box-shadow:0 10px 32px rgba(0,0,0,.55),0 0 0 1px rgba(127,230,224,.18)}
+#status{min-height:42px;margin:9px 0 0;font-size:clamp(13.5px,3.4vw,15.5px);font-weight:700;color:var(--sand);
+  text-align:center;text-shadow:0 0 12px rgba(255,200,80,.2);max-width:670px;line-height:1.35}
+#pips{min-height:17px;font-size:13px;letter-spacing:6px;color:var(--electric);text-align:center;margin:2px 0 4px}
+#dirchips{display:none;gap:8px;margin:2px 0 6px}
+.chip{font:700 12px var(--font);color:var(--cool2);background:#08283a;border:1.5px solid rgba(127,230,224,.3);
+  border-radius:20px;padding:6px 14px;cursor:pointer;touch-action:manipulation}
+.chip.on{color:var(--ink);background:var(--amber);border-color:var(--amber)}
+#hand{display:flex;gap:10px;width:min(97vw,670px)}
+.card{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 6px 7px;
+  background:linear-gradient(180deg,#0a3547,#062435);border:1.5px solid rgba(127,230,224,.3);border-radius:13px;
+  color:var(--warm);font-family:var(--font);cursor:pointer;touch-action:manipulation;
+  transition:transform .12s,box-shadow .12s,border-color .12s,opacity .2s}
+.card .ic{font-size:23px;line-height:1.1;filter:drop-shadow(0 0 8px rgba(127,230,224,.35))}
+.card .nm{font-weight:900;font-size:12.5px;letter-spacing:1px}
+.card .ds{font-size:9.8px;color:var(--cool2);text-align:center;line-height:1.3}
+.card:not(:disabled):hover{transform:translateY(-2px)}
+.card.armed{border-color:var(--amber);box-shadow:0 0 0 2px rgba(255,194,71,.35),0 8px 20px rgba(255,194,71,.18);
+  transform:translateY(-2px)}
+.card.used{opacity:.32;filter:grayscale(1)}
+.card:disabled{cursor:default;opacity:.75}
+.card.used:disabled{opacity:.32}
+#c-radar{border-color:rgba(56,225,255,.45)}  #c-radar .nm{color:var(--electric)}
+#c-torp{border-color:rgba(255,93,115,.45)}   #c-torp .nm{color:var(--coral)}
+#c-sh{border-color:rgba(255,194,71,.45)}     #c-sh .nm{color:var(--amber)}
+.btn{font:800 15px var(--font);color:var(--ink);background:linear-gradient(180deg,#ffd97a,#f0a93c);border:none;
+  border-radius:11px;padding:11px 26px;cursor:pointer;box-shadow:0 5px 16px rgba(240,169,60,.35);margin-top:4px;
+  touch-action:manipulation}
+.btn:active{transform:translateY(1px)}
+#restart{margin-top:12px}
+.note{font-size:10.8px;color:#5f8496;margin-top:10px;max-width:670px;text-align:center;line-height:1.55}
+#overlay{position:fixed;inset:0;background:rgba(3,17,26,.78);display:none;align-items:center;justify-content:center;z-index:10}
+#overlay.show{display:flex}
+.panel{background:linear-gradient(180deg,#0a3547,#051d2b);border:1.5px solid rgba(127,230,224,.4);border-radius:18px;
+  padding:26px 34px;text-align:center;max-width:88vw;box-shadow:0 14px 50px rgba(0,0,0,.7)}
+#oemoji{font-size:52px}
+#otitle{font-size:clamp(19px,4.5vw,23px);font-weight:900;margin:6px 0 4px;color:var(--amber);letter-spacing:1px}
+#otext{font-size:13.5px;color:var(--cool2);margin-bottom:14px;line-height:1.55}
+</style>
+</head>
+<body>
+  <h1>🐙 КРАКЕН: БОСС МОРСКОГО БОЯ</h1>
+  <div class="sub">Капитаны островов · единый босс-режим</div>
+
+  <div class="hud">
+    <div class="hudrow" id="hpwrap">
+      <span class="hplabel k">🐙 КРАКЕН</span>
+      <div class="hpbar"><div class="hpfill" id="hpfill"></div></div>
+      <span class="hptext" id="hptext">9/9</span>
+    </div>
+    <div class="hudrow">
+      <span class="hplabel f">⚓ ВАШ ФЛОТ</span>
+      <div class="hpbar"><div class="hpfill" id="flfill"></div></div>
+      <span class="hptext" id="fltext">11/11</span>
+    </div>
+  </div>
+
+  <canvas id="sea"></canvas>
+  <div id="status">Подготовка...</div>
+  <div id="pips"></div>
+  <div id="dirchips">
+    <button class="chip on" data-d="h">↔ по строке</button>
+    <button class="chip" data-d="v">↕ по столбцу</button>
+  </div>
+
+  <div id="hand">
+    <button class="card" id="c-radar">
+      <span class="ic">📡</span><span class="nm">РАДАР</span>
+      <span class="ds">Засвечивает точную зону Кракена на 2 секунды. Тратит 1 выстрел хода.</span>
+    </button>
+    <button class="card" id="c-torp">
+      <span class="ic">🚀</span><span class="nm">ТОРПЕДА</span>
+      <span class="ds">Бьёт всю строку или столбец. Заденет Кракена — ранит. Завершает ход.</span>
+    </button>
+    <button class="card" id="c-sh">
+      <span class="ic">🛡️</span><span class="nm">ЩИТ</span>
+      <span class="ds">Гасит следующий удар Кракена по одной клетке вашего флота.</span>
+    </button>
+  </div>
+
+  <button class="btn" id="restart">🔄 Новая битва</button>
+
+  <div class="note">
+    Кракен <b>невидим</b> и каждый раз прячется в новой зоне 3×3 на ПРАВОМ поле. В свой ход он
+    <b>всплывает на несколько секунд</b> — успейте запомнить где! Попадание ранит его, и он на миг остаётся
+    на месте — добивайте соседние клетки. Промахи тоже полезны: кракен не заплывает в простреленные воды.
+    Карточки — по одному разу за бой.
+  </div>
+
+  <div id="overlay">
+    <div class="panel">
+      <div id="oemoji">🏆</div>
+      <div id="otitle"></div>
+      <div id="otext"></div>
+      <button class="btn" id="again">⚔️ Новая битва</button>
+    </div>
+  </div>
+
+<script>
+'use strict';
+/* ================================================================
+   🐙 КРАКЕН — босс-режим «Морского боя» («Капитаны островов»)
+   Один файл: игра + невидимый босс + карточки. Без зависимостей.
+   ================================================================ */
+
+/* ---------- константы поля ---------- */
+const N = 10, CELL = 30, BW = N * CELL;            // 300 — сторона доски
+const TOP = 40;
+const PB = { x: 26,  y: TOP };                     // левая доска — мой флот
+const KB = { x: 356, y: TOP };                     // правая доска — океан Кракена
+const W = 670, H = TOP + BW + 12;
+const KHP_MAX = 9, SALVO = 3;                      // HP босса и выстрелов за ход
+const LETTERS = 'АБВГДЕЖЗИК';
+
+const cv = document.getElementById('sea');
+const g  = cv.getContext('2d');
+const dpr = Math.min(window.devicePixelRatio || 1, 2);
+cv.width = W * dpr; cv.height = H * dpr;
+g.scale(dpr, dpr);
+
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const now = () => performance.now();
+const ri = n => Math.floor(Math.random() * n);
+const rnd = a => a[ri(a.length)];
+const chance = p => Math.random() < p;
+const in3 = (r, c) => r >= K.r && r < K.r + 3 && c >= K.c && c < K.c + 3;
+
+/* ---------- состояние ---------- */
+let pGrid, pShips, pShot;   // моя доска: корабли / отметки атак Кракена
+let kShot;                  // доска Кракена: мои отметки (1 мимо, 2 рана)
+let K;                      // босс: {r,c} верхний угол зоны 3x3, hp, mode, t0, flash
+let shield = null;          // {r,c} клетка под щитом
+let phase = 'boot';         // player | kraken | anim | over
+let shotsLeft = 0;          // выстрелов осталось в текущем ходе
+let GID = 0;                // номер партии: старые цепочки анимаций умирают при рестарте
+let fx = [];                // визуальные эффекты
+let shakeT0 = 0;            // тряска экрана
+let radarT0 = 0;            // момент включения радара (засветка 2 сек)
+let armed = null;           // выбранная карточка: 'torpedo' | 'shield' | null
+let torDir = 'h';           // направление торпеды
+let cardsUsed = { radar: false, torpedo: false, shield: false };
+let stats = { shots: 0, hits: 0 };
+
+/* ---------- звук (WebAudio, без файлов) ---------- */
+const Sfx = {
+  ctx: null,
+  init(){ try{
+    if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (this.ctx.state === 'suspended') this.ctx.resume().catch(()=>{});
+  }catch(e){} },
+  tone(f, d, type, vol, slide){
+    if (!this.ctx) return;
+    try{
+      const t = this.ctx.currentTime, o = this.ctx.createOscillator(), gn = this.ctx.createGain();
+      o.type = type || 'sine';
+      o.frequency.setValueAtTime(f, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, slide), t + d);
+      gn.gain.setValueAtTime(vol || .12, t);
+      gn.gain.exponentialRampToValueAtTime(.001, t + d);
+      o.connect(gn).connect(this.ctx.destination);
+      o.start(t); o.stop(t + d);
+    }catch(e){}
+  },
+  noise(d, vol){
+    if (!this.ctx) return;
+    try{
+      const t = this.ctx.currentTime, n = Math.floor(this.ctx.sampleRate * d);
+      const buf = this.ctx.createBuffer(1, n, this.ctx.sampleRate), ch = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      const src = this.ctx.createBufferSource(); src.buffer = buf;
+      const gn = this.ctx.createGain(); gn.gain.value = vol || .2;
+      src.connect(gn).connect(this.ctx.destination); src.start(t);
+    }catch(e){}
+  },
+  shot(){ this.tone(340, .12, 'sine', .1, 120); },
+  miss(){ this.tone(220, .18, 'sine', .09, 90); },
+  hit(){ this.noise(.25, .22); this.tone(90, .3, 'sawtooth', .16, 40); },
+  roar(){ this.tone(70, .7, 'sawtooth', .2, 45); this.noise(.5, .1); },
+  card(){ this.tone(660, .12, 'triangle', .1, 880); },
+  block(){ this.tone(520, .15, 'square', .08, 300); },
+  whoosh(){ this.tone(520, .25, 'sine', .05, 160); },
+  dive(){ this.tone(90, .6, 'sine', .1, 40); }
+};
+document.addEventListener('pointerdown', () => Sfx.init());
+
+/* ---------- расстановка флота (4-3-2-2, без касаний) ---------- */
+function placeFleet(){
+  const grid = Array.from({length:N}, () => Array(N).fill(0));
+  const ships = [];
+  for (const len of [4,3,2,2]){
+    let guard = 0;
+    while (guard++ < 5000){
+      const hor = Math.random() < .5;
+      const r = ri(hor ? N : N - len + 1);
+      const c = ri(hor ? N - len + 1 : N);
+      const cells = []; let ok = true;
+      for (let i = 0; i < len; i++){
+        const rr = hor ? r : r + i, cc = hor ? c + i : c;
+        for (let dr = -1; dr <= 1 && ok; dr++)
+          for (let dc = -1; dc <= 1 && ok; dc++){
+            const nr = rr + dr, nc = cc + dc;
+            if (nr>=0 && nr<N && nc>=0 && nc<N && grid[nr][nc]) ok = false;
+          }
+        cells.push([rr, cc]);
+      }
+      if (ok){
+        cells.forEach(([rr,cc]) => grid[rr][cc] = 1);
+        ships.push({ cells, dead: 0 });
+        break;
+      }
+    }
+  }
+  return { grid, ships };
+}
+
+/* ---------- босс ---------- */
+function spawnKraken(){
+  K = { r: ri(8), c: ri(8), hp: KHP_MAX, mode: 'under', t0: now(), flash: 0 };
+}
+function zoneClean(r, c){
+  for (let i = 0; i < 3; i++)
+    for (let j = 0; j < 3; j++)
+      if (kShot[r+i][c+j]) return false;
+  return true;
+}
+function moveKraken(){
+  const cand = [];
+  for (let r = 0; r <= N-3; r++)
+    for (let c = 0; c <= N-3; c++)
+      if ((r !== K.r || c !== K.c) && zoneClean(r, c)) cand.push([r, c]);
+  if (!cand.length)                                  // страховка: всё простреляно
+    for (let r = 0; r <= N-3; r++)
+      for (let c = 0; c <= N-3; c++)
+        if (r !== K.r || c !== K.c) cand.push([r, c]);
+  const [r, c] = rnd(cand);
+  K.r = r; K.c = c;
+}
+
+/* ---------- статус и полосы ---------- */
+function say(t){ $('status').textContent = t; }
+function updateHP(hurt){
+  $('hpfill').style.width = Math.max(0, K.hp) / KHP_MAX * 100 + '%';
+  $('hptext').textContent = Math.max(0, K.hp) + '/' + KHP_MAX;
+  if (hurt){
+    const w = $('hpwrap');
+    w.classList.remove('hit'); void w.offsetWidth; w.classList.add('hit');
+  }
+}
+function updateFleet(){
+  let alive = 0;
+  for (const s of pShips) alive += s.cells.length - s.dead;
+  $('flfill').style.width = alive / 11 * 100 + '%';
+  $('fltext').textContent = alive + '/11';
+}
+
+/* ---------- ход Кракена: атака ---------- */
+function aliveShipCells(){
+  const out = [];
+  for (const s of pShips) for (const [r,c] of s.cells)
+    if (!pShot[r][c]) out.push([r,c]);
+  return out;
+}
+function krakenAttack(){
+  const roll = Math.random();
+  if (roll < .30){                                   // ⚓ меткий якорь — бьёт по кораблю
+    const live = aliveShipCells();
+    return { kind: 'anchor', cells: [ live.length ? rnd(live) : [ri(N), ri(N)] ] };
+  }
+  if (roll < .65){                                   // 🛢️ бочка 2x2
+    const r = ri(N-1), c = ri(N-1);
+    return { kind: 'barrel', cells: [[r,c],[r,c+1],[r+1,c],[r+1,c+1]] };
+  }
+  const hor = chance(.5);                            // 🚢 обломки 1x3
+  const r = ri(hor ? N : N-2), c = ri(hor ? N-2 : N);
+  return { kind: 'wreck', cells: [0,1,2].map(i => hor ? [r, c+i] : [r+i, c]) };
+}
+
+/* ---------- цикл хода Кракена: всплытие -> атака -> нырок ---------- */
+async function krakenTurn(gid){
+  if (gid !== GID || phase === 'over') return;
+  phase = 'kraken'; armed = null; syncHand();
+
+  K.mode = 'rise'; K.t0 = now(); Sfx.roar();
+  say('🐙 Кракен ВСПЛЫВАЕТ из пучины! Смотрите на правое поле...');
+  await sleep(950);  if (gid !== GID) return;
+  K.mode = 'full'; K.t0 = now();
+  say('👀 Вот он! Запомните зону 3×3 — сейчас он атакует и нырнёт!');
+  await sleep(1050); if (gid !== GID) return;
+
+  const atk = krakenAttack();
+  say(atk.kind === 'anchor' ? '⚓ Кракен мечет ЯКОРЬ в ваш флот!' :
+      atk.kind === 'barrel' ? '🛢️ Кракен швыряет БОЧКУ!' :
+                              '🚢 Кракен бросает ОБЛОМКИ корабля!');
+  await sleep(450);  if (gid !== GID) return;
+
+  const kx = KB.x + (K.c + 1.5) * CELL, ky = KB.y + (K.r + 1.7) * CELL;
+  for (const [r,c] of atk.cells){
+    const tx = PB.x + c*CELL + CELL/2, ty = PB.y + r*CELL + CELL/2;
+    fx.push({ type:'throw', emoji: atk.kind==='anchor' ? '⚓' : atk.kind==='barrel' ? '🛢️' : '🚢',
+              x0:kx, y0:ky, x1:tx, y1:ty, t0:now(), dur:480 });
+    Sfx.whoosh();
+    await sleep(500); if (gid !== GID) return;
+
+    if (shield && shield.r === r && shield.c === c){        // щит гасит удар
+      fx.push({ type:'block', x:tx, y:ty, t0:now() });
+      shield = null; Sfx.block();
+      say('🛡 Щит погасил удар Кракена!');
+    } else {
+      const hitShip = pGrid[r][c] === 1 && !pShot[r][c];   // обломки повторно не горят
+      pShot[r][c] = hitShip ? 2 : (pShot[r][c] || 1);
+      fx.push({ type: hitShip ? 'boom' : 'splash', x:tx, y:ty, t0:now() });
+      if (hitShip){
+        shakeT0 = now(); Sfx.hit();
+        for (const s of pShips)
+          if (s.cells.some(([rr,cc]) => rr===r && cc===c)){
+            s.dead++;
+            if (s.dead === s.cells.length) say('💀 Ваш корабль потоплен!');
+          }
+        updateFleet();
+      } else Sfx.miss();
+    }
+    await sleep(330); if (gid !== GID) return;
+  }
+
+  if (!aliveShipCells().length){ await sleep(600); if (gid !== GID) return; gameOver(false, gid); return; }
+
+  K.mode = 'dive'; K.t0 = now(); Sfx.dive();
+  say('🌑 Кракен ныряет в пучину и незаметно меняет позицию...');
+  await sleep(800); if (gid !== GID) return;
+  moveKraken();
+  K.mode = 'under';                                  // полностью невидим в ход игрока
+  startPlayerTurn();
+}
+
+function startPlayerTurn(){
+  if (phase === 'over') return;
+  phase = 'player'; shotsLeft = SALVO;
+  say('🎯 ВАШ ХОД: ' + SALVO + ' выстрела по правому полю. Кракен невидим — ищите зону 3×3!');
+  syncHand();
+}
+
+/* ---------- действия игрока ---------- */
+async function fireShot(r, c){
+  if (phase !== 'player' || shotsLeft <= 0) return;
+  if (kShot[r][c]){ say('Здесь уже стреляли! Выберите другую клетку.'); return; }
+  const gid = GID;
+  phase = 'anim'; shotsLeft--; stats.shots++; syncHand();
+  Sfx.shot();
+
+  const wasHit = in3(r, c);
+  kShot[r][c] = wasHit ? 2 : 1;
+  fx.push({ type: wasHit ? 'ink' : 'splash',
+            x: KB.x + c*CELL + CELL/2, y: KB.y + r*CELL + CELL/2, t0: now() });
+  await sleep(300); if (gid !== GID) return;
+
+  if (wasHit){
+    K.hp--; K.flash = 1; stats.hits++;
+    updateHP(true); Sfx.hit(); shakeT0 = now();
+    say(K.hp > 0
+      ? '💥 ПОПАДАНИЕ! Кракен ранен — HP ' + K.hp + '/' + KHP_MAX + '. Он ещё здесь — добивайте соседние клетки!'
+      : '☠️ СМЕРТЕЛЬНОЕ ПОПАДАНИЕ!');
+  } else {
+    Sfx.miss();
+    say('💧 Мимо — вода. Осталось выстрелов: ' + shotsLeft);
+  }
+  await sleep(340); if (gid !== GID) return;
+  await afterPlayerAction(gid);
+}
+
+async function afterPlayerAction(gid){
+  if (gid !== GID || phase === 'over') return;
+  if (K.hp <= 0){
+    phase = 'anim'; armed = null; radarT0 = 0; syncHand();
+    K.mode = 'dead'; K.t0 = now(); Sfx.roar();
+    say('☠️ Кракен повержен! Он поднимается в последний раз и уходит в пучину навсегда...');
+    await sleep(1700); if (gid !== GID) return;
+    gameOver(true, gid); return;
+  }
+  if (shotsLeft > 0){ phase = 'player'; syncHand(); return; }
+  krakenTurn(gid);
+}
+
+/* 📡 РАДАР — точная засветка зоны Кракена на 2 секунды */
+async function useRadar(){
+  if (phase !== 'player' || cardsUsed.radar) return;
+  const gid = GID;
+  cardsUsed.radar = true; shotsLeft--; syncHand();
+  radarT0 = now(); Sfx.card(); Sfx.tone(880, .35, 'sine', .07, 1320);
+  say('📡 РАДАР! Цель засвечена на 2 секунды — бейте по зоне 3×3!');
+  if (shotsLeft <= 0){
+    await sleep(2100); if (gid !== GID || phase !== 'player') return;
+    await afterPlayerAction(gid);
+  }
+}
+
+/* 🚀 ТОРПЕДА — вся строка или столбец */
+async function useTorpedo(r, c){
+  if (phase !== 'player' || cardsUsed.torpedo) return;
+  const gid = GID, hor = torDir === 'h';
+  phase = 'anim'; armed = null; cardsUsed.torpedo = true; stats.shots++; syncHand();
+  say(hor ? '🚀 Торпеда пошла по строке ' + (r+1) + '!' : '🚀 Торпеда пошла по столбцу ' + LETTERS[c] + '!');
+  Sfx.tone(220, .5, 'sawtooth', .06, 90);
+  fx.push({ type:'torp', hor, r, c, t0:now(), dur:950 });
+  await sleep(1000); if (gid !== GID) return;
+
+  let hit = false, cross = null;
+  for (let i = 0; i < N; i++){
+    const rr = hor ? r : i, cc = hor ? i : c;
+    if (in3(rr, cc)){ if (!kShot[rr][cc]) kShot[rr][cc] = 2; hit = true; cross = [rr, cc]; }
+    else if (!kShot[rr][cc]) kShot[rr][cc] = 1;
+  }
+  if (hit){
+    K.hp--; stats.hits++;
+    updateHP(true); Sfx.hit(); shakeT0 = now();
+    fx.push({ type:'ink', x: KB.x + cross[1]*CELL + CELL/2, y: KB.y + cross[0]*CELL + CELL/2, t0:now() });
+    say(K.hp > 0
+      ? '💥 Торпеда ПОРАЗИЛА Кракена! HP ' + K.hp + '/' + KHP_MAX
+      : '☠️ СМЕРТЕЛЬНОЕ ПОРАЖЕНИЕ!');
+  } else {
+    Sfx.miss();
+    say('🚀 Торпеда прошла впустую — Кракена не было на линии.');
+  }
+  shotsLeft = 0;
+  await sleep(480); if (gid !== GID) return;
+  await afterPlayerAction(gid);
+}
+
+/* 🛡 ЩИТ — гасит следующий удар по одной клетке флота */
+function tryShield(r, c){
+  if (phase !== 'player' || cardsUsed.shield) return;
+  if (pGrid[r][c] !== 1){ say('🛡 Щит ставится только на клетку ВАШЕГО корабля (левое поле).'); return; }
+  if (pShot[r][c] === 2){ say('Эта клетка уже разрушена — щит не удержать.'); return; }
+  shield = { r, c };
+  cardsUsed.shield = true; armed = null; Sfx.card();
+  say('🛡 Щит поднят над клеткой ' + LETTERS[c] + (r+1) + '! Следующий удар Кракена по ней погаснет.');
+  syncHand();
+}
+
+/* ---------- клики по канвасу ---------- */
+cv.addEventListener('pointerdown', e => {
+  const rect = cv.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (W / rect.width);
+  const y = (e.clientY - rect.top)  * (H / rect.height);
+  if (phase !== 'player') return;
+  const kc = x >= KB.x && x < KB.x + BW && y >= KB.y && y < KB.y + BW;
+  const pc = x >= PB.x && x < PB.x + BW && y >= PB.y && y < PB.y + BW;
+  if (kc){
+    const c = Math.floor((x - KB.x) / CELL), r = Math.floor((y - KB.y) / CELL);
+    if (armed === 'torpedo') useTorpedo(r, c);
+    else if (shotsLeft > 0) fireShot(r, c);
+    else say('Выстрелы на этот ход закончились.');
+  } else if (pc){
+    const c = Math.floor((x - PB.x) / CELL), r = Math.floor((y - PB.y) / CELL);
+    if (armed === 'shield') tryShield(r, c);
+    else say('Это ВАШ флот. Стрелять нужно по правому полю Кракена!');
+  }
+});
+
+/* ---------- карточки (DOM) ---------- */
+$('c-radar').addEventListener('click', useRadar);
+$('c-torp').addEventListener('click', () => {
+  if (phase !== 'player' || cardsUsed.torpedo) return;
+  armed = armed === 'torpedo' ? null : 'torpedo';
+  if (armed) say('🚀 Кликните по клетке ПРАВОГО поля — торпеда пойдёт по ' + (torDir === 'h' ? 'строке' : 'столбцу') + '.');
+  syncHand();
+});
+$('c-sh').addEventListener('click', () => {
+  if (phase !== 'player' || cardsUsed.shield) return;
+  armed = armed === 'shield' ? null : 'shield';
+  if (armed) say('🛡 Кликните по клетке СВОЕГО корабля на ЛЕВОМ поле.');
+  syncHand();
+});
+document.querySelectorAll('#dirchips .chip').forEach(ch => {
+  ch.addEventListener('click', () => {
+    torDir = ch.dataset.d;
+    document.querySelectorAll('#dirchips .chip').forEach(x => x.classList.toggle('on', x === ch));
+    if (armed === 'torpedo') say('🚀 Направление: ' + (torDir === 'h' ? 'строка' : 'столбец') + '. Кликните по полю Кракена.');
+  });
+});
+
+function syncHand(){
+  const can = phase === 'player';
+  $('c-radar').disabled = !can || cardsUsed.radar;
+  $('c-torp').disabled  = !can || cardsUsed.torpedo;
+  $('c-sh').disabled    = !can || cardsUsed.shield;
+  $('c-radar').classList.toggle('used', cardsUsed.radar);
+  $('c-torp').classList.toggle('used', cardsUsed.torpedo);
+  $('c-sh').classList.toggle('used', cardsUsed.shield);
+  $('c-torp').classList.toggle('armed', armed === 'torpedo');
+  $('c-sh').classList.toggle('armed', armed === 'shield');
+  $('dirchips').style.display = armed === 'torpedo' ? 'flex' : 'none';
+  let pips = '';
+  if (phase === 'player' || phase === 'anim'){
+    const s = Math.max(0, shotsLeft);
+    pips = '●'.repeat(s) + '○'.repeat(Math.max(0, SALVO - s));
+  }
+  $('pips').textContent = pips;
+}
+
+/* ---------- конец боя ---------- */
+function gameOver(win, gid){
+  if (gid !== undefined && gid !== GID) return;
+  phase = 'over'; armed = null; radarT0 = 0; syncHand();
+  if (!win){ K.mode = 'rise'; K.t0 = now(); }        // победитель грозно всплывает
+  const acc = stats.shots ? Math.round(stats.hits / stats.shots * 100) : 0;
+  $('oemoji').textContent = win ? '🏆' : '💀';
+  $('otitle').textContent = win ? 'ПОБЕДА! КРАКЕН ПОВЕРЖЕН' : 'ФЛОТ ПОТОПЛЕН';
+  $('otext').textContent = win
+    ? 'Древнее чудовище повержено и навсегда ушло в пучину. Ваши корабли спасены!\nВыстрелов: ' + stats.shots + ' · Точность: ' + acc + '%'
+    : 'Кракен уничтожил все ваши корабли. Море снова принадлежит ему...\nОн уцелел с HP ' + K.hp + '/' + KHP_MAX;
+  $('overlay').classList.add('show');
+  say(win ? '🏆 Победа!' : '💀 Поражение...');
+}
+
+function newGame(){
+  GID++;
+  $('overlay').classList.remove('show');
+  const f = placeFleet();
+  pGrid = f.grid; pShips = f.ships;
+  pShot = Array.from({length:N}, () => Array(N).fill(0));
+  kShot = Array.from({length:N}, () => Array(N).fill(0));
+  fx = []; shakeT0 = 0; radarT0 = 0; shield = null; armed = null;
+  cardsUsed = { radar: false, torpedo: false, shield: false };
+  stats = { shots: 0, hits: 0 };
+  spawnKraken();
+  updateHP(false); updateFleet();
+  phase = 'anim'; syncHand();
+  krakenTurn(GID);
+}
+$('restart').onclick = newGame;
+$('again').onclick   = newGame;
+
+/* ================================================================
+   РИСОВАНИЕ
+   ================================================================ */
+function roundRect(x, y, w, h, r){
+  g.beginPath();
+  g.moveTo(x+r, y);
+  g.arcTo(x+w, y,   x+w, y+h, r);
+  g.arcTo(x+w, y+h, x,   y+h, r);
+  g.arcTo(x,   y+h, x,   y,   r);
+  g.arcTo(x,   y,   x+w, y,   r);
+  g.closePath();
+}
+
+/* ---------- вода, сетка, подписи ---------- */
+function drawBoard(bx, by, title, tcol){
+  const grad = g.createLinearGradient(0, by, 0, by + BW);
+  grad.addColorStop(0, '#0e4a66');
+  grad.addColorStop(1, '#062a3d');
+  g.fillStyle = grad;
+  g.fillRect(bx, by, BW, BW);
+
+  for (let r = 0; r < N; r++)
+    for (let c = 0; c < N; c++)
+      if ((r + c) % 2){
+        g.fillStyle = 'rgba(255,255,255,.035)';
+        g.fillRect(bx + c*CELL, by + r*CELL, CELL, CELL);
+      }
+
+  g.strokeStyle = 'rgba(127,230,224,.16)';
+  g.lineWidth = 1;
+  g.beginPath();
+  for (let i = 0; i <= N; i++){
+    g.moveTo(bx + i*CELL + .5, by);
+    g.lineTo(bx + i*CELL + .5, by + BW);
+    g.moveTo(bx, by + i*CELL + .5);
+    g.lineTo(bx + BW, by + i*CELL + .5);
+  }
+  g.stroke();
+  g.strokeStyle = 'rgba(127,230,224,.45)';
+  g.lineWidth = 1.5;
+  g.strokeRect(bx + .75, by + .75, BW - 1.5, BW - 1.5);
+
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = '900 13px ' + '"Nunito","Segoe UI",sans-serif';
+  g.fillStyle = tcol;
+  g.fillText(title, bx + BW/2, 15);
+  g.font = '10px "Nunito","Segoe UI",sans-serif';
+  g.fillStyle = 'rgba(207,233,242,.55)';
+  for (let c = 0; c < N; c++) g.fillText(LETTERS[c], bx + c*CELL + CELL/2, by - 7);
+  for (let r = 0; r < N; r++) g.fillText('' + (r+1), bx - 9, by + r*CELL + CELL/2);
+}
+
+/* ---------- корабли игрока (деревянные корпуса) ---------- */
+function drawShips(){
+  for (const s of pShips){
+    const rs = s.cells.map(p => p[0]), cs = s.cells.map(p => p[1]);
+    const hor = s.cells[0][0] === s.cells[1][0];
+    const x = PB.x + Math.min(...cs) * CELL, y = PB.y + Math.min(...rs) * CELL;
+    const w = (hor ? s.cells.length : 1) * CELL, h = (hor ? 1 : s.cells.length) * CELL;
+    const m = 4;
+    const grad = g.createLinearGradient(x, y, x, y + h);
+    grad.addColorStop(0, '#a37b4e');
+    grad.addColorStop(1, '#5c3f26');
+    g.fillStyle = grad;
+    roundRect(x + m, y + m, w - 2*m, h - 2*m, 7);
+    g.fill();
+    g.strokeStyle = '#2e1c10'; g.lineWidth = 1.6; g.stroke();
+    g.strokeStyle = 'rgba(60,36,18,.6)'; g.lineWidth = 1;
+    g.beginPath();
+    for (let i = 1; i < (hor ? s.cells.length : 1); i++){
+      g.moveTo(x + i*CELL + m, y + m + 2);
+      g.lineTo(x + i*CELL + m, y + h - m - 2);
+    }
+    for (let i = 1; i < (hor ? 1 : s.cells.length); i++){
+      g.moveTo(x + m + 2, y + i*CELL + m);
+      g.lineTo(x + w - m - 2, y + i*CELL + m);
+    }
+    g.stroke();
+    g.fillStyle = '#3a2413';
+    const lx = CELL*0.5, ly = CELL/2;
+    for (let i = 0; i < s.cells.length; i++){
+      g.beginPath();
+      g.arc(x + (hor ? i*CELL + lx : lx), y + (hor ? ly : i*CELL + ly), 2.4, 0, 7);
+      g.fill();
+    }
+  }
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (const s of pShips)
+    for (let i = 0; i < s.cells.length; i++){
+      if (i >= s.dead) continue;
+      const [r,c] = s.cells[i];
+      const x = PB.x + c*CELL, y = PB.y + r*CELL;
+      g.fillStyle = 'rgba(15,8,4,.8)';
+      g.fillRect(x + 3, y + 3, CELL - 6, CELL - 6);
+      g.font = Math.floor(CELL*.55) + 'px serif';
+      g.fillText('🔥', x + CELL/2, y + CELL/2 + 1);
+    }
+}
+
+/* ---------- щит на клетке флота ---------- */
+function drawShieldMark(t){
+  if (!shield) return;
+  const x = PB.x + shield.c*CELL, y = PB.y + shield.r*CELL;
+  g.save();
+  g.globalAlpha = .9;
+  g.fillStyle = 'rgba(255,194,71,.16)';
+  roundRect(x + 2.5, y + 2.5, CELL - 5, CELL - 5, 6); g.fill();
+  g.strokeStyle = 'rgba(255,194,71,' + (.65 + .3*Math.sin(t*4)) + ')';
+  g.lineWidth = 2.2; g.stroke();
+  g.font = '13px serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('🛡', x + CELL/2, y + CELL/2);
+  g.restore();
+}
+
+/* ---------- отметки выстрелов ---------- */
+function marker(bx, by, r, c, kind, kraken){
+  const x = bx + c*CELL + CELL/2, y = by + r*CELL + CELL/2;
+  if (kind === 1){                       // мимо — всплеск
+    g.strokeStyle = 'rgba(127,230,224,.8)'; g.lineWidth = 1.6;
+    g.beginPath(); g.arc(x, y, 6.5, 0, 7); g.stroke();
+    g.fillStyle = 'rgba(127,230,224,.9)';
+    g.beginPath(); g.arc(x, y, 2.2, 0, 7); g.fill();
+    return;
+  }
+  if (kraken){                           // рана Кракена: кровавые чернила + звезда
+    const bl = g.createRadialGradient(x, y, 1, x, y, 13);
+    bl.addColorStop(0, 'rgba(150,20,60,.55)'); bl.addColorStop(1, 'rgba(60,8,30,0)');
+    g.fillStyle = bl;
+    g.beginPath(); g.arc(x, y, 13, 0, 7); g.fill();
+    g.fillStyle = 'rgba(110,14,44,.5)';
+    [[6,-7],[-7,4],[4,8]].forEach(([dx,dy]) => {
+      g.beginPath(); g.arc(x+dx, y+dy, 2.1, 0, 7); g.fill();
+    });
+  }
+  g.save(); g.translate(x, y);
+  for (let i = 0; i < 8; i++){
+    g.rotate(Math.PI/4);
+    g.fillStyle = i % 2 ? (kraken ? '#ff5d73' : '#ff9b2e') : (kraken ? '#ffa1b0' : '#ffd23c');
+    g.beginPath();
+    g.moveTo(0, -9); g.lineTo(3.2, -3); g.lineTo(-3.2, -3);
+    g.closePath(); g.fill();
+  }
+  g.fillStyle = kraken ? '#6e0e2c' : '#8a1d10';
+  g.beginPath(); g.arc(0, 0, 3.4, 0, 7); g.fill();
+  g.restore();
+}
+
+/* ================================================================
+   🐙 КРАКЕН — купол, горящие глаза, клюв, 8 щупалец (облик из референса)
+   ================================================================ */
+const WOUNDS = [[-.48,-.82],[.34,-1.02],[.06,-.5],[-.26,-.22],[.6,-.34],
+                [-.72,.02],[.78,.06],[.16,.08],[-.02,-1.18]];
+
+function drawKraken(cx, cy, t, ghost){
+  const s = CELL;
+  let p = 1, alpha = 1, dy = 0;
+  if (ghost){
+    alpha = .3;
+  } else {
+    p = Math.min(1, (now() - K.t0) / (K.mode === 'dead' ? 1700 : 800));
+    if (K.mode === 'rise'){ dy = (1-p)*1.6*s; alpha = Math.min(1, p*1.7); }
+    else if (K.mode === 'dive'){ dy = p*1.6*s; alpha = 1 - p*.92; }
+    else if (K.mode === 'dead'){ dy = p*2.6*s; alpha = 1 - p; }
+    else if (K.mode === 'under') return;
+  }
+
+  g.save();
+  g.translate(cx, cy + dy + Math.sin(t*1.8)*2.5);   // дыхание
+  g.globalAlpha = alpha;
+
+  /* зона поражения 3x3 (пунктир) */
+  g.strokeStyle = 'rgba(255,90,110,' + (.22 + .12*Math.sin(t*3)) + ')';
+  g.lineWidth = 1.5; g.setLineDash([5,4]);
+  g.strokeRect(-1.5*s, -1.5*s, 3*s, 3*s);
+  g.setLineDash([]);
+
+  /* 8 ЩУПАЛЕЦ (задние — до головы) */
+  const tent = [
+    { pts: [[-.5,0],[-1.18,.62],[-.92,1.38]],      w:.32 },
+    { pts: [[ .5,0],[ 1.18,.62],[ .92,1.38]],      w:.32 },
+    { pts: [[-.68,-.12],[-1.42,.34],[-1.18,1.18]], w:.26 },
+    { pts: [[ .68,-.12],[ 1.42,.34],[ 1.18,1.18]], w:.26 },
+    { pts: [[-.74,-.38],[-1.5,-.82],[-1.4,-1.66],[-.78,-1.32]], w:.24, front:1 },
+    { pts: [[ .74,-.38],[ 1.5,-.82],[ 1.4,-1.66],[ .78,-1.32]], w:.24, front:1 },
+    { pts: [[-.2,.1],[-.9,.75],[-.55,1.45]],       w:.4, front:1 },
+    { pts: [[ .2,.1],[ .9,.75],[ .55,1.45]],       w:.4, front:1 },
+    { pts: [[-.42,.05],[-1.25,.8],[-.98,1.5]],     w:.3, front:1 },
+    { pts: [[ .42,.05],[ 1.25,.8],[ .98,1.5]],     w:.3, front:1 }
+  ];
+  const drawTent = (tn, i) => {
+    const P = tn.pts.map((pt, k) => [
+      pt[0]*s + Math.sin(t*1.5 + i*.9 + k*1.3) * s*.07,
+      pt[1]*s + Math.cos(t*1.2 + i*1.4 + k)    * s*.05
+    ]);
+    const steps = 22, L = [], R = [];
+    for (let k = 0; k <= steps; k++){
+      const u = k/steps;
+      const pt = bezier(P, u), d = bezierD(P, u);
+      const len = Math.hypot(d[0], d[1]) || 1;
+      const nx = -d[1]/len, ny = d[0]/len;
+      const w0 = tn.w * s * (1 - u*.85);
+      L.push([pt[0] + nx*w0, pt[1] + ny*w0]);
+      R.push([pt[0] - nx*w0, pt[1] - ny*w0]);
+    }
+    g.beginPath();
+    g.moveTo(L[0][0], L[0][1]);
+    L.forEach(pt => g.lineTo(pt[0], pt[1]));
+    R.reverse().forEach(pt => g.lineTo(pt[0], pt[1]));
+    g.closePath();
+    const tg = g.createLinearGradient(0, -1.4*s, 0, 1.5*s);
+    tg.addColorStop(0, '#5b3287'); tg.addColorStop(1, '#221040');
+    g.fillStyle = tg; g.fill();
+    g.strokeStyle = 'rgba(20,8,36,.8)'; g.lineWidth = 1; g.stroke();
+    for (let k = 4; k <= steps - 2; k += 3){          // присоски
+      const u = k/steps;
+      const pt = bezier(P, u), d = bezierD(P, u);
+      const len = Math.hypot(d[0], d[1]) || 1;
+      const nx = d[1]/len, ny = -d[0]/len;
+      const off = tn.w * s * (1 - u*.85) * .55;
+      const rr = Math.max(1.8, s*.1*(1-u));
+      g.fillStyle = k % 2 ? '#f0a3ab' : '#d4737f';
+      g.beginPath();
+      g.arc(pt[0] + nx*off, pt[1] + ny*off, rr, 0, 7);
+      g.fill();
+    }
+  };
+  tent.forEach((tn, i) => { if (!tn.front) drawTent(tn, i); });
+
+  /* широкая мантия: задний пласт + боковые лопасти (не шар!) */
+  const hg2 = g.createLinearGradient(0, -1.4*s, 0, .5*s);
+  hg2.addColorStop(0, '#6d3d9e'); hg2.addColorStop(1, '#241040');
+  g.fillStyle = hg2;
+  g.beginPath(); g.ellipse(0, -.48*s, 1.1*s, .55*s, 0, 0, 7); g.fill();
+  for (const side of [-1, 1]){
+    g.beginPath();
+    g.ellipse(side*.76*s, -.3*s, .34*s, .44*s, side*.35, 0, 7);
+    g.fill();
+  }
+
+  /* КУПОЛ головы */
+  const hg = g.createLinearGradient(0, -1.5*s, 0, .4*s);
+  hg.addColorStop(0, '#9a5fc9'); hg.addColorStop(.45, '#5b2f8a'); hg.addColorStop(1, '#301549');
+  g.fillStyle = hg;
+  g.beginPath(); g.ellipse(0, -.66*s, .98*s, .62*s, 0, 0, 7); g.fill();
+  g.strokeStyle = 'rgba(24,10,40,.9)'; g.lineWidth = 1.4; g.stroke();
+  g.fillStyle = 'rgba(30,12,52,.55)';                 // бугры-наросты
+  [[-.46,-1.0,.13],[.4,-1.06,.11],[-.06,-1.18,.09],[.62,-.78,.1],[-.74,-.66,.09]]
+    .forEach(([wx,wy,wr]) => {
+      g.beginPath(); g.ellipse(wx*s, wy*s, wr*s, wr*s*.75, 0, 0, 7); g.fill();
+    });
+  g.fillStyle = 'rgba(255,255,255,.14)';              // блик
+  g.beginPath(); g.ellipse(-.32*s, -.98*s, .38*s, .16*s, -.35, 0, 7); g.fill();
+
+  /* РАНЫ (по числу потерянных HP) */
+  const nw = KHP_MAX - K.hp;
+  for (let i = 0; i < nw && i < WOUNDS.length; i++){
+    const [wx, wy] = WOUNDS[i];
+    const wg = g.createRadialGradient(wx*s, wy*s, 1, wx*s, wy*s, s*.17);
+    wg.addColorStop(0, 'rgba(255,60,80,.95)'); wg.addColorStop(1, 'rgba(140,10,30,0)');
+    g.fillStyle = wg;
+    g.beginPath(); g.arc(wx*s, wy*s, s*.17, 0, 7); g.fill();
+    g.fillStyle = '#a3122a';
+    g.beginPath(); g.arc(wx*s, wy*s, s*.06, 0, 7); g.fill();
+  }
+
+  /* СЕРДИТЫЕ БРОВИ (внутренний край опущен) */
+  for (const side of [-1, 1]){
+    g.fillStyle = '#180826';
+    g.beginPath();
+    g.ellipse(side*.42*s, -.66*s, .3*s, .11*s, -side*.45, 0, 7);
+    g.fill();
+  }
+  g.fillStyle = '#180826';
+  g.beginPath(); g.ellipse(0, -.6*s, .08*s, .14*s, 0, 0, 7); g.fill();
+
+  /* ГЛАЗА: горящие оранжевые, щелевидный зрачок */
+  const blink = (t % 4.6) < .14 ? .1 : 1;
+  for (const side of [-1, 1]){
+    const ex = side*.42*s, ey = -.5*s;
+    const glow = g.createRadialGradient(ex, ey, 1, ex, ey, .32*s);
+    glow.addColorStop(0, 'rgba(255,140,25,.7)'); glow.addColorStop(1, 'rgba(255,140,25,0)');
+    g.fillStyle = glow;
+    g.beginPath(); g.arc(ex, ey, .32*s, 0, 7); g.fill();
+    g.save(); g.translate(ex, ey); g.scale(1, blink);
+    const eg = g.createRadialGradient(0, 0, 1, 0, 0, .2*s);
+    eg.addColorStop(0, '#ffe08a'); eg.addColorStop(.55, '#ffab2e'); eg.addColorStop(1, '#e2570f');
+    g.fillStyle = eg;
+    g.beginPath(); g.ellipse(0, 0, .2*s, .16*s, 0, 0, 7); g.fill();
+    g.strokeStyle = '#3a0d14'; g.lineWidth = 1.2; g.stroke();
+    g.fillStyle = '#0d0208';
+    g.beginPath();
+    g.moveTo(0, -.13*s);
+    g.quadraticCurveTo(.055*s, 0, 0, .13*s);
+    g.quadraticCurveTo(-.055*s, 0, 0, -.13*s);
+    g.fill();
+    g.fillStyle = 'rgba(255,255,255,.85)';
+    g.beginPath(); g.arc(-.06*s, -.05*s, .025*s, 0, 7); g.fill();
+    g.restore();
+  }
+
+  /* ПЕРЕДНИЕ щупальца и завитки — поверх головы */
+  tent.forEach((tn, i) => { if (tn.front) drawTent(tn, i); });
+
+  /* КЛЮВ (пасть с зубами) */
+  const open = .5 + .5*Math.sin(t*.9);
+  const my = .38*s, mo = .08*open;
+  g.fillStyle = '#150726';
+  g.beginPath(); g.ellipse(0, my, .28*s, (.12+.08*open)*s, 0, 0, 7); g.fill();
+  g.fillStyle = '#07020d';
+  g.beginPath(); g.ellipse(0, my, .18*s, (.06+.05*open)*s, 0, 0, 7); g.fill();
+  g.fillStyle = '#efe6da';
+  for (let i = -2; i <= 2; i++){
+    g.beginPath();
+    g.moveTo(i*.12*s - .045*s, (my - mo*s) - .055*s);
+    g.lineTo(i*.12*s,          (my - mo*s) + .045*s);
+    g.lineTo(i*.12*s + .045*s, (my - mo*s) - .055*s);
+    g.closePath(); g.fill();
+    g.beginPath();
+    g.moveTo(i*.12*s - .045*s, (my + mo*s) + .055*s);
+    g.lineTo(i*.12*s,          (my + mo*s) - .045*s);
+    g.lineTo(i*.12*s + .045*s, (my + mo*s) + .055*s);
+    g.closePath(); g.fill();
+  }
+
+  /* вспышка при попадании */
+  if (!ghost && K.flash > 0){
+    g.globalCompositeOperation = 'lighter';
+    g.fillStyle = 'rgba(255,120,90,' + (K.flash*.55) + ')';
+    g.beginPath(); g.ellipse(0, -.5*s, 1.05*s, 1.35*s, 0, 0, 7); g.fill();
+    g.globalCompositeOperation = 'source-over';
+  }
+
+  /* пена и круги на воде */
+  g.fillStyle = 'rgba(200,235,255,.25)';
+  for (let i = 0; i < 7; i++){
+    const a = t*2 + i*2.2;
+    g.beginPath();
+    g.arc(Math.sin(a)*1.15*s, 1.3*s + Math.cos(a*.7)*.06*s, 3 + 2*Math.sin(a*1.3), 0, 7);
+    g.fill();
+  }
+  g.strokeStyle = 'rgba(200,235,255,.35)'; g.lineWidth = 1.5;
+  const rp = (t % 1.6) / 1.6;
+  g.beginPath(); g.ellipse(0, 1.32*s, (.4 + rp*1.1)*s, (.13 + rp*.3)*s, 0, 0, 7); g.stroke();
+
+  /* частицы: брызги при всплытии / чернила при погружении */
+  if (!ghost && (K.mode === 'rise' || K.mode === 'dive' || K.mode === 'dead')){
+    const n = 14;
+    for (let i = 0; i < n; i++){
+      const a = Math.PI + (i / (n-1)) * Math.PI;
+      const dist = (K.mode === 'rise' ? p : 1-p) * 1.5*s;
+      const bx2 = Math.cos(a) * dist * 1.15, by2 = 1.2*s + Math.sin(a) * dist;
+      const ink = K.mode !== 'rise';
+      g.fillStyle = ink ? 'rgba(22,8,38,' + (.7*(1-p)) + ')'
+                        : 'rgba(230,220,255,' + (.8*(1-p)) + ')';
+      g.beginPath(); g.arc(bx2, by2, (ink ? 4.5 : 2.5) * (1 - p*.5), 0, 7); g.fill();
+    }
+  }
+  g.restore();
+}
+
+/* квадратичная/кубическая Безье и её производная */
+function bezier(P, u){
+  if (P.length === 3){
+    const a = 1-u;
+    return [a*a*P[0][0] + 2*a*u*P[1][0] + u*u*P[2][0],
+            a*a*P[0][1] + 2*a*u*P[1][1] + u*u*P[2][1]];
+  }
+  const a = 1-u;
+  return [a*a*a*P[0][0] + 3*a*a*u*P[1][0] + 3*a*u*u*P[2][0] + u*u*u*P[3][0],
+          a*a*a*P[0][1] + 3*a*a*u*P[1][1] + 3*a*u*u*P[2][1] + u*u*u*P[3][1]];
+}
+function bezierD(P, u){
+  if (P.length === 3)
+    return [2*(1-u)*(P[1][0]-P[0][0]) + 2*u*(P[2][0]-P[1][0]),
+            2*(1-u)*(P[1][1]-P[0][1]) + 2*u*(P[2][1]-P[1][1])];
+  const a = 1-u;
+  return [3*a*a*(P[1][0]-P[0][0]) + 6*a*u*(P[2][0]-P[1][0]) + 3*u*u*(P[3][0]-P[2][0]),
+          3*a*a*(P[1][1]-P[0][1]) + 6*a*u*(P[2][1]-P[1][1]) + 3*u*u*(P[3][1]-P[2][1])];
+}
+
+/* ---------- призрак радара: точная засветка зоны ---------- */
+function drawRadarGhost(t){
+  if (!radarT0 || now() - radarT0 > 2000) return;
+  if (phase === 'kraken' || phase === 'over' || K.mode !== 'under') return;
+  const u = (now() - radarT0) / 2000;
+  const x = KB.x + K.c*CELL, y = KB.y + K.r*CELL, sz = 3*CELL;
+  g.save();
+  g.strokeStyle = 'rgba(56,225,255,' + (.5 + .3*Math.sin(t*6)) + ')';
+  g.lineWidth = 2; g.setLineDash([7,5]); g.lineDashOffset = -t*20;
+  g.strokeRect(x + 1, y + 1, sz - 2, sz - 2);
+  g.setLineDash([]);
+  const cx = x + sz/2, cy = y + sz/2;
+  for (let i = 0; i < 2; i++){
+    const uu = (u*1.4 + i*.5) % 1;
+    g.strokeStyle = 'rgba(56,225,255,' + (.55*(1-uu)) + ')';
+    g.lineWidth = 1.5;
+    g.beginPath(); g.arc(cx, cy, 8 + uu*46, 0, 7); g.stroke();
+  }
+  g.restore();
+  g.save();
+  g.beginPath(); g.rect(KB.x - 1, KB.y - 1, BW + 2, BW + 2); g.clip();
+  drawKraken(KB.x + (K.c + 1.5)*CELL, KB.y + (K.r + 1.5)*CELL, t, true);
+  g.restore();
+}
+
+/* ---------- эффекты ---------- */
+function drawFx(){
+  const t = now();
+  fx = fx.filter(f => t - f.t0 < (f.dur || 700));
+  for (const f of fx){
+    const u = Math.min(1, (t - f.t0) / (f.dur || 700));
+    if (f.type === 'splash'){
+      g.strokeStyle = 'rgba(127,230,224,' + (1-u) + ')'; g.lineWidth = 2;
+      g.beginPath(); g.arc(f.x, f.y, 3 + u*13, 0, 7); g.stroke();
+      g.fillStyle = 'rgba(127,230,224,' + (1-u) + ')';
+      g.beginPath(); g.arc(f.x, f.y, 2, 0, 7); g.fill();
+    } else if (f.type === 'boom'){
+      g.strokeStyle = 'rgba(255,150,40,' + (1-u) + ')'; g.lineWidth = 3;
+      g.beginPath(); g.arc(f.x, f.y, 4 + u*20, 0, 7); g.stroke();
+      g.fillStyle = 'rgba(255,220,90,' + (1-u) + ')';
+      for (let i = 0; i < 6; i++){
+        const a = i*1.05 + u*2;
+        g.beginPath();
+        g.arc(f.x + Math.cos(a)*(6+u*16), f.y + Math.sin(a)*(6+u*16), 2.2, 0, 7);
+        g.fill();
+      }
+    } else if (f.type === 'ink'){                    // кровавые чернила — рана невидимого
+      g.strokeStyle = 'rgba(255,93,115,' + (1-u) + ')'; g.lineWidth = 2.5;
+      g.beginPath(); g.arc(f.x, f.y, 4 + u*20, 0, 7); g.stroke();
+      g.strokeStyle = 'rgba(185,140,255,' + (1-u) + ')'; g.lineWidth = 1.5;
+      g.beginPath(); g.arc(f.x, f.y, 2 + u*12, 0, 7); g.stroke();
+      g.fillStyle = 'rgba(40,8,30,' + (.8*(1-u)) + ')';
+      for (let i = 0; i < 7; i++){
+        const a = i*2.4;
+        g.beginPath();
+        g.arc(f.x + Math.cos(a)*(5+u*22), f.y + Math.sin(a)*(5+u*22), 3.4*(1-u*.6), 0, 7);
+        g.fill();
+      }
+    } else if (f.type === 'throw'){                  // снаряд летит по дуге
+      const x = f.x0 + (f.x1 - f.x0)*u;
+      const y = f.y0 + (f.y1 - f.y0)*u - Math.sin(Math.PI*u)*74;
+      g.font = '21px serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.save(); g.translate(x, y); g.rotate(Math.sin(u*6)*.3);
+      g.fillText(f.emoji, 0, 0);
+      g.restore();
+      g.fillStyle = 'rgba(127,230,224,' + (.35*(1-u)) + ')';
+      for (let k = 1; k <= 3; k++){
+        const uu = Math.max(0, u - k*.07);
+        const tx = f.x0 + (f.x1 - f.x0)*uu;
+        const ty = f.y0 + (f.y1 - f.y0)*uu - Math.sin(Math.PI*uu)*74;
+        g.beginPath(); g.arc(tx, ty, 2.2, 0, 7); g.fill();
+      }
+    } else if (f.type === 'torp'){                   // торпеда вдоль линии
+      const L = KB.x - 10, R = KB.x + BW + 10, T = KB.y - 10, B = KB.y + BW + 10;
+      let x, y, ang;
+      if (f.hor){ y = KB.y + f.r*CELL + CELL/2; x = L + (R-L)*u; ang = 0; }
+      else      { x = KB.x + f.c*CELL + CELL/2; y = T + (B-T)*u; ang = Math.PI/2; }
+      g.fillStyle = 'rgba(127,230,224,.5)';
+      for (let k = 1; k <= 4; k++){
+        const uu = Math.max(0, u - k*.05);
+        const bx = f.hor ? L + (R-L)*uu : x, by = f.hor ? y : T + (B-T)*uu;
+        g.beginPath(); g.arc(bx, by + (k%2 ? 3 : -3), 2, 0, 7); g.fill();
+      }
+      g.save(); g.translate(x, y); g.rotate(ang);
+      g.shadowColor = 'rgba(56,225,255,.9)'; g.shadowBlur = 10;
+      g.fillStyle = '#ff5d73';
+      roundRect(-11, -4.5, 22, 9, 4.5); g.fill();
+      g.shadowBlur = 0;
+      g.fillStyle = '#ffe9a8';
+      g.beginPath(); g.arc(9, 0, 3, 0, 7); g.fill();
+      g.restore();
+    } else if (f.type === 'block'){                  // щит погасил удар
+      g.strokeStyle = 'rgba(255,194,71,' + (1-u) + ')'; g.lineWidth = 3;
+      g.beginPath(); g.arc(f.x, f.y, 6 + u*18, 0, 7); g.stroke();
+      g.font = '18px serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.globalAlpha = 1 - u;
+      g.fillText('🛡', f.x, f.y - u*14);
+      g.globalAlpha = 1;
+    }
+  }
+}
+
+/* ---------- главный цикл ---------- */
+let lastT = now();
+function loop(){
+  const t = now() / 1000;
+  const dt = Math.min(.05, (now() - lastT) / 1000);
+  lastT = now();
+  if (K && K.flash > 0) K.flash = Math.max(0, K.flash - dt*3);
+
+  g.clearRect(0, 0, W, H);
+  g.save();
+  if (shakeT0 && now() - shakeT0 < 320){
+    const k = (1 - (now() - shakeT0)/320) * 5;
+    g.translate((Math.random()-.5)*k, (Math.random()-.5)*k);
+  }
+
+  drawBoard(PB.x, PB.y, '⚓ ВАШ ФЛОТ', '#ffc247');
+  drawBoard(KB.x, KB.y, '🐙 ОКЕАН КРАКЕНА', '#b98cff');
+  drawShips();
+
+  for (let r = 0; r < N; r++)
+    for (let c = 0; c < N; c++){
+      if (pShot[r][c]) marker(PB.x, PB.y, r, c, pShot[r][c], false);
+      if (kShot[r][c]) marker(KB.x, KB.y, r, c, kShot[r][c], true);
+    }
+
+  drawShieldMark(t);
+
+  /* пузыри в океане Кракена */
+  g.save();
+  g.beginPath(); g.rect(KB.x, KB.y, BW, BW); g.clip();
+  for (let i = 0; i < 6; i++){
+    const yy = KB.y + BW - ((t*14 + i*53) % (BW + 20));
+    const xx = KB.x + 24 + (i*61) % (BW - 48);
+    g.fillStyle = 'rgba(127,230,224,.1)';
+    g.beginPath(); g.arc(xx, yy, 2 + (i%3), 0, 7); g.fill();
+  }
+  g.restore();
+
+  drawRadarGhost(t);
+
+  if (K){
+    g.save();
+    g.beginPath(); g.rect(KB.x - 1, KB.y - 1, BW + 2, BW + 2); g.clip();
+    drawKraken(KB.x + (K.c + 1.5)*CELL, KB.y + (K.r + 1.5)*CELL, t, false);
+    g.restore();
+  }
+
+  drawFx();
+  g.restore();
+  requestAnimationFrame(loop);
+}
+
+newGame();
+loop();
+</script>
+</body>
+</html>
