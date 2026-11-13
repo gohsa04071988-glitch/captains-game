@@ -14,7 +14,7 @@
 <script>
 try{if("serviceWorker" in navigator&&/^https?:/.test(location.protocol)){
  window.addEventListener("load",function(){
-  navigator.serviceWorker.register("/captains-sw.js",{scope:"/captains.html"}).catch(function(){});
+  // Service Worker отключен для обновлений.catch(function(){});
  });}}catch(e){}
 </script>
 <link rel="icon" type="image/png" href="/captains-icon-192.png">
@@ -265,6 +265,31 @@ select.txt{cursor:pointer}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <script>
+    (function() {
+        const CURRENT_VERSION = 'v3';
+        const savedVersion = localStorage.getItem('argus_game_version');
+        if (savedVersion !== CURRENT_VERSION) {
+            console.log('Обновление версии игры...');
+            localStorage.setItem('argus_game_version', CURRENT_VERSION);
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    for (let name of names) caches.delete(name);
+                });
+            }
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(regs => {
+                    for (let reg of regs) reg.unregister();
+                });
+            }
+            setTimeout(() => {
+                window.location.reload(true);
+            }, 300);
+        }
+    })();
+    </script>
+    
 </head>
 <body>
 <canvas id="ocean"></canvas><div class="vignette"></div><div class="grain"></div>
