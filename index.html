@@ -302,6 +302,18 @@ select.txt{cursor:pointer}
           <button data-opp="local">Вдвоём на устройстве</button>
         </div>
       </div>
+      
+    <div class="panel" id="histCardPanel" style="margin-top: 15px; display: none; background: linear-gradient(135deg, rgba(226,169,63,0.15), rgba(5,26,38,0.95)); border: 2px solid var(--amber); box-shadow: 0 0 20px rgba(226,169,63,0.3); border-radius: 16px; overflow: hidden; position: relative;">
+      <div style="position: absolute; top:0; left:0; width: 100%; height: 4px; background: linear-gradient(90deg, transparent, var(--amber), transparent);"></div>
+      <div class="pin" style="display: flex; gap: 15px; align-items: center; padding: 18px;">
+        <div id="histIcon" style="font-size: 45px; line-height: 1; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));">⚓</div>
+        <div style="flex: 1;">
+          <h3 class="hsec" id="histTitle" style="color: var(--amber); margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 1.5px; font-size: 16px;">Локация</h3>
+          <p class="lead" id="histText" style="font-size: 14.5px; font-style: italic; color: var(--warm); margin: 0; line-height: 1.5;"></p>
+        </div>
+      </div>
+    </div>
+    
       <div class="row">
         <div class="grow"><input class="txt" id="menuName1" maxlength="14" placeholder="Имя первого капитана" value="Капитан"></div>
         <div class="grow" id="name2Wrap" hidden><input class="txt" id="menuName2" maxlength="14" placeholder="Имя второго капитана" value="Капитан 2"></div>
@@ -474,6 +486,14 @@ const MODES={
  simple:{id:'simple',name:'Простой',n:6,fleet:[3,2,2],islands:[[2,2],[3,3]],recon:2,label:'6 × 6 · флот 3–2–2',desc:'Крупные клетки, радар 2×2. Хорошо для младших.'},
  hard:{id:'hard',name:'Сложный',n:8,fleet:[4,3,2,2],islands:[[2,2],[2,5],[5,2],[5,5]],recon:3,label:'8 × 8 · флот 4–3–2–2',desc:'Больше воды, радар 3×3, четыре острова.'}};
 const SHIPNAME={4:'Флагман',3:'Крейсер',2:'Катер'};
+
+    const HIST_MODES = {
+      trafalgar: {id:'trafalgar', name:'Трафальгар', n:8, fleet:[4,3,2,2], islands:[[1,1],[1,6],[6,1],[6,6]], recon:3, label:'8 × 8 · 1805', desc:'Англия против Франции и Испании.', card:'21 октября 1805 года. Британский флот под командованием адмирала Нельсона разбил объединенный франко-испанский флот. Штормовое море, деревянные парусники.', color:'#142b40'},
+      sinop: {id:'sinop', name:'Синоп', n:6, fleet:[3,2,2], islands:[[2,2],[3,3]], recon:2, label:'6 × 6 · 1853', desc:'Россия против Турции.', card:'30 ноября 1853 года. Черноморский флот под командованием адмирала Нахимова уничтожил турецкую эскадру в Синопской бухте. Туманное утро, парусники.', color:'#1e3a47'},
+      caribbean: {id:'caribbean', name:'Карибы', n:8, fleet:[4,3,2,2], islands:[[2,2],[5,5],[2,5]], recon:3, label:'8 × 8 · XVII век', desc:'Золотой век пиратства.', card:'XVII век. Битвы за испанское золото. Бирюзовая вода, рифы, пальмы и флибустьеры.', color:'#0b5e70'}
+    };
+    Object.assign(MODES, HIST_MODES);
+    
 class RuleError extends Error{constructor(code,msg){super(msg||code);this.code=code;}}
 const K=(r,c)=>r+','+c;
 const U=s=>s.split(',').map(Number);
@@ -828,7 +848,7 @@ const BP={w1:'#bfeef7',w2:'#8fdcea',grid:'rgba(11,60,80,.16)',sand1:'#f6e3b6',sa
  hull:'#2f6f8f',deck:'#e9f6fb',trim:'#ffc247',hit:'#ff4d5e',miss:'#7fa8bb',sunk:'#8b2233',block:'#ffc247',aim:'#38e1ff'};
 class BoardView{
  constructor(canvas,o){this.cv=canvas;this.ctx=canvas.getContext('2d');
-  this.n=o.n;this.islands=o.islands||[];this.cell=o.cell||52;this.pad=14;
+  this.n=o.n;this.islands=o.islands||[];this.cell=o.cell||52;this.pad=14;this.waterColor=o.waterColor;
   this.ships=null;this.shots={};this.enemyShots={};this.hover=null;this.aim=null;this.reconCells=null;
   this.preview=null;this.previewBad=false;this.torpedoPath=null;this.dim=false;this.effects=[];this.shake=0;this.shieldCells=null;
   this.onCell=o.onCell||null;this.onHover=o.onHover||null;this.onUp=o.onUp||null;this.onFrame=o.onFrame||null;
@@ -865,7 +885,7 @@ class BoardView{
   ctx.clearRect(0,0,S,S);
   ctx.save();
   if(this.shake>0){ctx.translate((Math.random()-.5)*this.shake,(Math.random()-.5)*this.shake);this.shake*=.85;if(this.shake<.6)this.shake=0;}
-  const g=ctx.createLinearGradient(0,0,S,S);g.addColorStop(0,BP.w1);g.addColorStop(1,BP.w2);
+  const g=ctx.createLinearGradient(0,0,S,S);g.addColorStop(0,this.waterColor||BP.w1);g.addColorStop(1,BP.w2);
   ctx.fillStyle=g;this.rr(0,0,S,S,14);ctx.fill();
   ctx.save();this.rr(P,P,this.n*C,this.n*C,10);ctx.clip();ctx.globalAlpha=.5;
   for(let i=0;i<4;i++){ctx.strokeStyle='rgba(255,255,255,'+(.16-i*.03)+')';ctx.lineWidth=1.2;ctx.beginPath();
@@ -1263,7 +1283,22 @@ function renderMenu(){
   b.innerHTML='<div class="mck">✓</div><div class="mct">'+(id==='simple'?'🏝':'🌊')+' '+m.name+'</div><div class="mcs">'+m.label+'</div><div class="mcd">'+m.desc+'</div>';
   b.onclick=()=>{App.mode=id;Sound.play('click');renderMenu();};
   $('modeGrid').appendChild(b);});
- const strip=$('rulesStrip');strip.innerHTML='';
+ 
+    const isHist = MODES[App.mode].card !== undefined;
+    const histPanel = document.getElementById('histCardPanel');
+    if (histPanel) {
+        if (isHist) {
+            histPanel.style.display = 'block';
+            const icons = {trafalgar: '⚔️', sinop: '🌊', caribbean: '🏴‍☠️'};
+            document.getElementById('histIcon').innerText = icons[App.mode] || '⚓';
+            document.getElementById('histTitle').innerText = MODES[App.mode].name + ' (' + MODES[App.mode].label + ')';
+            document.getElementById('histText').innerText = MODES[App.mode].card;
+        } else {
+            histPanel.style.display = 'none';
+        }
+    }
+    
+    const strip=$('rulesStrip');strip.innerHTML='';
  CARD_IDS.forEach(id=>{const c=CARDS[id];const d=document.createElement('div');d.className='tile';
   d.innerHTML='<b style="color:'+c.hue+'">'+c.icon+' '+c.name+'</b><span>'+c.desc+'</span>';strip.appendChild(d);});
  const help=$('helpTiles');help.innerHTML='';
@@ -1336,7 +1371,7 @@ function enterSetup(){
  show('Setup');
  $('setupTitle').textContent=App.names[App.seat];
  $('setupSub').innerHTML='<i class="dot"></i><span>'+MODES[App.mode].label+'</span>';
- App.boards.setup=new BoardView($('setupCanvas'),{n:App.m.n,islands:App.m.islands,cell:fitCell(App.m.n),
+ App.boards.setup=new BoardView($('setupCanvas'),{n:App.m.n,islands:App.m.islands,cell:fitCell(App.m.n),waterColor:MODES[App.mode]?.color,
   onCell:setupClick,onHover:setupHover,onUp:setupUp});
  renderSetup();}
 function renderSetup(){
@@ -1436,9 +1471,9 @@ function enterBattle(){
  $('banner').className='banner';$('banner').textContent='Выбери клетку и подтверди выстрел';
  show('Battle');
  const n=App.m.n,cell=fitCell(n);
- App.boards.enemy=new BoardView($('enemyCanvas'),{n:n,islands:App.m.islands,cell:cell,
+ App.boards.enemy=new BoardView($('enemyCanvas'),{n:n,islands:App.m.islands,cell:cell,waterColor:MODES[App.mode]?.color,
   onCell:battleClick,onHover:()=>{},onFrame:updateZoom});
- App.boards.own=new BoardView($('ownCanvas'),{n:n,islands:App.m.islands,cell:cell,onCell:ownClick});
+ App.boards.own=new BoardView($('ownCanvas'),{n:n,islands:App.m.islands,cell:cell,onCell:ownClick,waterColor:MODES[App.mode]?.color});
  renderBattle();
  if(App.opp==='local')handoff(App.names[App.viewSeat],()=>{renderBattle();maybeBot();});
  else maybeBot();}
