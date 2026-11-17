@@ -1,0 +1,491 @@
+/* ============================================================
+   КАПИТАНЫ ОСТРОВОВ — style.css  (v2.2)
+   Светлая детская тема: небо, море, песок, солнце.
+   Новое в v2.2:
+   - меню и весь бой СВЕТЛЫЕ: небо сверху, полоска моря,
+     песчаный пляж снизу, плывущие облака и кораблик;
+   - живее: облака плывут, кораблик качается, кнопки
+     пружинят, как настоящие большие кнопки;
+   - переворот доски СПОКОЙНЫЙ: почти секунда, мягкий разгон;
+   - задел под карты: бейдж названия карты (#map-badge)
+     и переменные акцентов карт (body[data-map]).
+   ============================================================ */
+
+:root{
+  --sky:#bfe9fb; --sky2:#e6f7ff;
+  --sea:#2fb7cf; --sea-dark:#157f9d; --sea-pale:#cfeef7;
+  --sand:#fdf1d6; --sand2:#f7e4b8;
+  --coral:#ff7a59; --coral-dark:#e05537;
+  --sun:#ffcf4d; --sun-dark:#e8a41c;
+  --ink:#28506b; --ink-soft:#5f8299;
+  --panel:#ffffff; --panel2:#f3fbff;
+  --line:#c6e4f2;
+  --frame:#ffffff;
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+
+body{
+  min-height:100vh;
+  color:var(--ink);
+  font-family:'Segoe UI', 'Trebuchet MS', Roboto, Arial, sans-serif;
+  /* пляжная сцена: небо, полоска моря, песок */
+  background:linear-gradient(180deg,
+    var(--sky) 0%, var(--sky2) 24%,
+    #8fd9ec 30%, #4fbcd9 36%,
+    var(--sand) 37%, var(--sand2) 100%);
+  background-attachment:fixed;
+  display:flex; flex-direction:column; align-items:center;
+  user-select:none;
+  padding:10px 8px 30px;
+}
+
+/* облака: плывут по небу медленно и бесконечно */
+body::before{
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    radial-gradient(ellipse 90px 26px at 30px 30px,  #fff 60%, transparent 62%),
+    radial-gradient(ellipse 60px 20px at 105px 42px, #fff 60%, transparent 62%),
+    radial-gradient(ellipse 120px 30px at 60px 36px, rgba(255,255,255,.85) 60%, transparent 62%),
+    radial-gradient(ellipse 70px 22px at 30px 96px,  #fff 60%, transparent 62%),
+    radial-gradient(ellipse 46px 16px at 88px 108px, rgba(255,255,255,.8) 60%, transparent 62%);
+  background-repeat:repeat-x;
+  background-size:1240px 100%;
+  background-position:0 0;
+  animation:cloudDrift 75s linear infinite;
+  opacity:.9;
+}
+@keyframes cloudDrift{
+  from{ background-position:0 0; }
+  to{   background-position:1240px 0; }
+}
+
+/* кораблик качается на волне у горизонта */
+body::after{
+  content:'⛵'; position:fixed; z-index:0; pointer-events:none;
+  left:9vw; top:calc(29.5vh + 2px);
+  font-size:clamp(20px,3.4vw,32px);
+  filter:drop-shadow(0 3px 4px rgba(21,127,157,.35));
+  animation:boatBob 4.6s ease-in-out infinite;
+}
+@keyframes boatBob{
+  0%,100%{ transform:translateY(0) rotate(-2.5deg); }
+  50%{     transform:translateY(4px) rotate(2.5deg); }
+}
+
+.screen{ display:none; width:100%; max-width:980px; flex-direction:column; align-items:center; position:relative; z-index:1; }
+.screen.active{ display:flex; }
+.hidden{ display:none !important; }
+
+/* ---------------- кнопки: большие и пружинистые ---------------- */
+.btn-gold{
+  cursor:pointer; font-family:inherit;
+  background:linear-gradient(180deg,#ffe27a,#ffc63c);
+  color:#6b4400; border:none; border-radius:999px;
+  font-size:18px; font-weight:800; letter-spacing:3px;
+  padding:14px 48px;
+  box-shadow:0 6px 0 var(--sun-dark), 0 12px 22px rgba(232,164,28,.35);
+  transition:transform .16s, box-shadow .16s;
+}
+.btn-gold:hover:not(:disabled){ transform:translateY(-2px); box-shadow:0 8px 0 var(--sun-dark), 0 16px 26px rgba(232,164,28,.4); }
+.btn-gold:active:not(:disabled){ transform:translateY(4px); box-shadow:0 2px 0 var(--sun-dark), 0 6px 12px rgba(232,164,28,.3); }
+.btn-gold:disabled{ opacity:.4; cursor:default; }
+
+.btn-ghost{
+  cursor:pointer; font-family:inherit;
+  background:var(--panel); color:var(--ink-soft);
+  border:2px solid var(--line); border-radius:999px;
+  font-size:15px; font-weight:700; padding:12px 28px;
+  transition:transform .16s, border-color .16s, color .16s;
+}
+.btn-ghost:hover{ color:var(--sea-dark); border-color:var(--sea); transform:translateY(-2px); }
+
+.btn-small{
+  cursor:pointer; font-family:inherit;
+  background:var(--panel); color:var(--ink-soft);
+  border:2px solid var(--line); border-radius:12px;
+  font-size:13px; font-weight:700; padding:7px 14px;
+  white-space:nowrap;
+  box-shadow:0 3px 0 rgba(31,120,160,.14);
+  transition:transform .16s, border-color .16s, color .16s, box-shadow .16s;
+}
+.btn-small:hover{ color:var(--sea-dark); border-color:var(--sea); transform:translateY(-2px); }
+.btn-small:active{ transform:translateY(1px); box-shadow:0 1px 0 rgba(31,120,160,.14); }
+.btn-small.gold{ background:#fff5d8; color:#8a5f00; border-color:#f0cd77; box-shadow:0 3px 0 rgba(232,164,28,.25); }
+.btn-small.gold:hover{ border-color:var(--sun-dark); color:#6b4400; }
+
+/* кнопка варианта досок: одна / две */
+.view-btn{ color:var(--sea-dark); }
+.view-btn.on{ background:#fff5d8; color:#8a5f00; border-color:#f0cd77; }
+
+/* ---------------- меню ---------------- */
+.menu-card{
+  margin-top:5vh; width:min(560px,94vw);
+  background:var(--panel);
+  border:2px solid #ffe1ad; border-radius:24px;
+  padding:28px 26px; text-align:center;
+  box-shadow:0 10px 0 rgba(31,120,160,.10), 0 24px 50px rgba(21,127,157,.18);
+  position:relative; overflow:hidden;
+}
+/* пальма на «пляже» и волны внизу карточки */
+.menu-card::before{
+  content:'🌴'; position:absolute; bottom:4px; left:16px;
+  font-size:28px; transform:rotate(6deg); opacity:.95;
+  pointer-events:none;
+}
+.menu-card::after{
+  content:''; position:absolute; left:-20px; right:-20px; bottom:-6px; height:64px;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='480' height='64' viewBox='0 0 480 64'><g fill='none' stroke='%232fb7cf' stroke-width='2.4'><path d='M0 26 Q30 14 60 26 T120 26 T180 26 T240 26 T300 26 T360 26 T420 26 T480 26' stroke-opacity='.30'/><path d='M0 50 Q30 40 60 50 T120 50 T180 50 T240 50 T300 50 T360 50 T420 50 T480 50' stroke-opacity='.16'/></g></svg>") repeat-x left bottom / 480px 64px;
+  pointer-events:none;
+  animation:menuWaves 9s ease-in-out infinite;
+}
+@keyframes menuWaves{
+  0%,100%{ transform:translateX(0); }
+  50%{     transform:translateX(-26px); }
+}
+.logo{
+  font-size:clamp(24px,4.8vw,34px); letter-spacing:2px; font-weight:800;
+  background:linear-gradient(92deg, var(--sea-dark) 0%, var(--sea) 38%, var(--coral) 100%);
+  -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:var(--sea-dark);
+  animation:logoFloat 3.6s ease-in-out infinite;
+}
+@keyframes logoFloat{
+  0%,100%{ transform:translateY(0); }
+  50%{     transform:translateY(-4px); }
+}
+.subtitle{
+  color:var(--coral-dark); margin:6px 0 20px;
+  letter-spacing:3px; text-transform:uppercase; font-size:12px; font-weight:700;
+}
+.menu-foot{ margin-top:14px; }
+.ver-tag{ font-size:11px; letter-spacing:2px; color:var(--ink-soft); opacity:.85; }
+
+/* карточки режимов: иконка + текст */
+.modes{ display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
+.mode-btn{
+  cursor:pointer; font-family:inherit; text-align:left;
+  display:flex; align-items:center; gap:14px;
+  padding:11px 16px; border-radius:18px;
+  background:var(--panel2); border:2px solid var(--line); color:var(--ink);
+  box-shadow:0 4px 0 rgba(31,120,160,.12);
+  transition:transform .16s, border-color .16s, box-shadow .16s, background .16s;
+}
+.mode-btn:hover{ border-color:var(--sea); transform:translateY(-2px) rotate(-.4deg); box-shadow:0 6px 0 rgba(31,120,160,.12); }
+.mode-btn.selected{
+  border-color:var(--coral); background:#fff6ef;
+  box-shadow:0 0 0 3px rgba(255,122,89,.28), 0 4px 0 rgba(224,85,55,.22);
+}
+.mode-icon{ width:44px; height:44px; flex:none; color:var(--sun-dark); opacity:.95; }
+.mode-icon svg{ width:100%; height:100%; display:block; }
+.mode-btn.boss .mode-icon{ color:#9a6bd8; }
+.mode-text{ flex:1; min-width:0; }
+.mode-name{ display:block; font-weight:800; letter-spacing:1px; color:var(--ink); }
+.mode-btn.boss .mode-name{ color:#7a4fc0; }
+.mode-desc{ display:block; font-size:12px; color:var(--ink-soft); margin-top:3px; }
+
+.lore-row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:10px; }
+.lore-btn{
+  cursor:pointer; font-family:inherit;
+  background:var(--panel); color:var(--ink-soft);
+  border:2px solid var(--line); border-radius:999px;
+  font-size:13px; font-weight:600; padding:7px 18px;
+  transition:transform .16s, border-color .16s, color .16s;
+}
+.lore-btn:hover{ color:var(--coral-dark); border-color:var(--coral); transform:translateY(-2px); }
+
+/* ------- судовой журнал: живая историческая справка ------- */
+.lore-box{
+  position:relative; overflow:hidden;
+  text-align:left; font-size:13px; line-height:1.6; color:var(--ink);
+  background:
+    repeating-linear-gradient(180deg, transparent 0 25px, rgba(47,183,207,.14) 25px 26px),
+    #fffdf4;
+  border:2px solid #f2d9a4; border-left:5px solid var(--coral);
+  border-radius:14px; padding:14px 16px 12px; margin-bottom:14px;
+  box-shadow:0 6px 0 rgba(31,120,160,.08);
+}
+.lore-head{
+  display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+  margin-bottom:2px;
+}
+.lore-title{
+  font-weight:800; letter-spacing:1px; font-size:15px; color:var(--coral-dark);
+}
+.lore-date{
+  font-size:11px; letter-spacing:1px; color:var(--sea-dark); font-weight:700;
+  border:1.5px solid rgba(47,183,207,.55); border-radius:20px;
+  padding:2px 10px; white-space:nowrap; background:var(--panel2);
+}
+.lore-sub{
+  font-size:11px; letter-spacing:1px; text-transform:uppercase;
+  color:var(--ink-soft); margin-bottom:8px;
+}
+.lore-para{ margin:8px 0 0; animation:loreIn .5s ease both; }
+.lore-para:nth-of-type(2){ animation-delay:.18s; }
+.lore-para:nth-of-type(3){ animation-delay:.36s; }
+.lore-para:nth-of-type(4){ animation-delay:.54s; }
+.lore-para:first-of-type::first-letter{
+  font-size:27px; font-weight:800; color:var(--sea-dark);
+  float:left; line-height:1; padding:3px 7px 0 0;
+}
+.lore-num{
+  color:var(--coral-dark); font-weight:800;
+}
+.lore-divider{
+  display:flex; align-items:center; gap:8px;
+  margin:12px 0 2px; font-size:12px; color:var(--sea-dark); font-weight:600;
+}
+.lore-divider::before, .lore-divider::after{
+  content:''; flex:1; height:2px; border-radius:2px;
+  background:linear-gradient(90deg,transparent,rgba(47,183,207,.6),transparent);
+}
+@keyframes loreIn{
+  from{ opacity:0; transform:translateY(9px); }
+  to{ opacity:1; transform:none; }
+}
+
+/* ---------------- верхняя панель боя ---------------- */
+.topbar{
+  display:flex; align-items:center; gap:10px;
+  width:100%; margin:6px 0 8px;
+}
+.status{
+  flex:1; text-align:center; color:var(--coral-dark);
+  font-weight:800; font-size:14px; min-height:20px;
+}
+.place-info{ color:var(--ink-soft); font-size:13px; margin-bottom:6px; text-align:center; font-weight:600; }
+
+/* бейдж карты: название акватории этой партии */
+.map-badge{
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--panel); border:2px solid var(--line); border-radius:999px;
+  color:var(--sea-dark); font-size:12px; font-weight:800; letter-spacing:1px;
+  padding:5px 14px; white-space:nowrap;
+  box-shadow:0 3px 0 rgba(31,120,160,.12);
+}
+
+/* ---------------- доски ----------------
+   ДВА ВАРИАНТА ПОКАЗА (кнопка в верхней панели):
+   по умолчанию — ОДНА доска: на экране только та, чей ход,
+   переключение со СПОКОЙНЫМ переворотом;
+   data-view="dual" — две доски рядом, активная подсвечена.
+   data-turn: place — расстановка, me — ход игрока,
+              foe — ход противника. */
+.boards{
+  display:flex; gap:26px; flex-wrap:wrap; justify-content:center;
+  perspective:1400px;
+}
+.board-block{
+  display:none; flex-direction:column; align-items:center;
+  transform-style:preserve-3d;
+}
+.board-block h3{
+  text-align:center; color:var(--sea-dark); font-size:13px;
+  letter-spacing:2px; text-transform:uppercase; margin-bottom:6px;
+  transition:color .5s;
+}
+canvas{
+  border-radius:14px;
+  box-shadow:0 0 0 5px var(--frame), 0 14px 32px rgba(21,127,157,.25);
+  cursor:crosshair;
+  touch-action:manipulation;
+  /* на телефоне доска сжимается под экран, пропорции квадратные */
+  max-width:min(92vw,600px) !important;
+  height:auto !important;
+}
+
+/* ---- ОДНА ДОСКА (по умолчанию): спокойный переворот ---- */
+.boards:not([data-view="dual"])[data-turn="place"] .board-block.own,
+.boards:not([data-view="dual"])[data-turn="me"] .board-block.foe,
+.boards:not([data-view="dual"])[data-turn="foe"] .board-block.own{
+  display:flex; animation:boardFlip 1s cubic-bezier(.32,1.18,.42,1) both;
+}
+.boards:not([data-view="dual"])[data-turn="me"] .board-block.foe h3,
+.boards:not([data-view="dual"])[data-turn="foe"] .board-block.own h3,
+.boards:not([data-view="dual"])[data-turn="place"] .board-block.own h3{
+  color:var(--coral-dark);
+}
+.boards:not([data-view="dual"])[data-turn="me"] .board-block.foe canvas,
+.boards:not([data-view="dual"])[data-turn="foe"] .board-block.own canvas{
+  box-shadow:0 0 0 5px var(--frame), 0 0 0 9px var(--sun), 0 18px 38px rgba(232,164,28,.35);
+}
+@keyframes boardFlip{
+  0%{   transform:rotateY(82deg)  scale(.96); opacity:0; }
+  55%{  transform:rotateY(-8deg)  scale(1);   opacity:1; }
+  100%{ transform:rotateY(0deg)   scale(1);   opacity:1; }
+}
+
+/* ---- ДВЕ ДОСКИ РЯДОМ (запасной вариант) ---- */
+.boards[data-view="dual"]{ align-items:flex-start; }
+.boards[data-view="dual"] .board-block{ display:flex; transition:transform .7s ease, filter .7s ease; }
+
+/* мой ход: доска противника выдвигается вперёд, моя отъезжает */
+.boards[data-view="dual"][data-turn="me"] .board-block.foe{
+  transform:translateY(-4px) scale(1.035); position:relative; z-index:2;
+}
+.boards[data-view="dual"][data-turn="me"] .board-block.foe h3{ color:var(--coral-dark); }
+.boards[data-view="dual"][data-turn="me"] .board-block.foe canvas{
+  box-shadow:0 0 0 5px var(--frame), 0 0 0 9px var(--sun), 0 18px 38px rgba(232,164,28,.35);
+}
+.boards[data-view="dual"][data-turn="me"] .board-block.own{
+  transform:scale(.94) rotateY(14deg);
+  filter:brightness(.72) saturate(.8); opacity:.85;
+}
+
+/* ход противника: наша доска выдвигается вперёд, его — отъезжает */
+.boards[data-view="dual"][data-turn="foe"] .board-block.own{
+  transform:translateY(-4px) scale(1.035); position:relative; z-index:2;
+}
+.boards[data-view="dual"][data-turn="foe"] .board-block.own h3{ color:var(--coral-dark); }
+.boards[data-view="dual"][data-turn="foe"] .board-block.own canvas{
+  box-shadow:0 0 0 5px var(--frame), 0 0 0 9px var(--sun), 0 18px 38px rgba(232,164,28,.35);
+}
+.boards[data-view="dual"][data-turn="foe"] .board-block.foe{
+  transform:scale(.94) rotateY(-14deg);
+  filter:brightness(.72) saturate(.8); opacity:.85;
+}
+
+/* ---------------- HP-бары босса ---------------- */
+.hp-row{ display:flex; gap:22px; width:100%; max-width:760px; margin:4px 0 10px; }
+.hp-block{ flex:1; display:flex; align-items:center; gap:8px; min-width:0; }
+.hp-label{ font-size:12px; color:var(--ink-soft); width:52px; text-align:right; white-space:nowrap; font-weight:700; }
+.hp-bar{
+  flex:1; height:14px; border-radius:8px;
+  background:#eaf6fb; border:2px solid var(--line); overflow:hidden;
+}
+.hp-fill{ height:100%; width:100%; border-radius:7px; transition:width .45s ease; }
+.hp-fill.kraken{
+  background:linear-gradient(90deg,#b44df0,#ff2e4d);
+}
+.hp-fill.player{
+  background:linear-gradient(90deg,#3fc0dc,#2fb7cf);
+}
+.hp-num{ font-size:12px; color:var(--ink-soft); min-width:38px; font-weight:700; }
+
+/* ---------------- игровые карточки ----------------
+   Строятся из CARD_DEFS (kraken_boss.js).
+   Состояния: .sel (выбрана), .used (сработала),
+   без класса — готова. */
+.cards-panel{
+  display:flex; gap:14px; margin-top:14px;
+  flex-wrap:wrap; justify-content:center;
+  perspective:900px;
+}
+.card-btn{
+  cursor:pointer; font-family:inherit; position:relative;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  width:134px; padding:12px 10px 10px; border-radius:16px;
+  color:var(--ink);
+  background:var(--panel);
+  border:2px solid #d8ecf6;
+  box-shadow:0 5px 0 rgba(31,120,160,.12);
+  transition:transform .18s, box-shadow .18s, border-color .18s, filter .3s, opacity .3s;
+}
+.card-btn::before{
+  content:''; position:absolute; inset:4px;
+  border:1.5px dashed rgba(47,183,207,.35); border-radius:11px;
+  pointer-events:none;
+}
+.card-btn:hover{
+  transform:translateY(-4px) rotate(-.5deg);
+  box-shadow:0 8px 0 rgba(31,120,160,.12);
+  border-color:var(--sea);
+}
+.card-icon{ width:46px; height:46px; }
+.card-icon svg{ width:100%; height:100%; display:block; }
+.card-btn[data-card="radar"]    .card-icon{ color:#e8a41c; }
+.card-btn[data-card="torpedo"]  .card-icon{ color:#f07438; }
+.card-btn[data-card="shield"]   .card-icon{ color:#2f9dc9; }
+.card-btn[data-card="repair"]   .card-icon{ color:#3aa856; }
+.card-btn[data-card="smoke"]    .card-icon{ color:#7d93a6; }
+.card-btn[data-card="salvo"]    .card-icon{ color:#e05537; }
+.card-name{
+  font-weight:800; letter-spacing:2px; font-size:13px; color:var(--ink);
+}
+.card-desc{
+  font-size:10px; color:var(--ink-soft); line-height:1.35;
+  text-align:center; min-height:27px;
+}
+.card-state{
+  font-size:10px; letter-spacing:1px; text-transform:uppercase;
+  color:var(--sea-dark); font-weight:700;
+}
+.card-btn.sel{
+  transform:translateY(-8px);
+  border-color:var(--coral);
+  box-shadow:0 0 0 3px rgba(255,122,89,.3), 0 9px 0 rgba(224,85,55,.18);
+}
+.card-btn.sel::before{ border-color:rgba(255,122,89,.6); }
+.card-btn.used{
+  opacity:.55; border-color:var(--line);
+  filter:grayscale(.85);
+  transform:rotate(-4deg) translateY(2px);
+  pointer-events:none;
+}
+.card-btn.used::after{
+  content:'СРАБОТАЛА'; position:absolute; left:0; right:0; bottom:38%;
+  text-align:center; font-size:11px; font-weight:800; letter-spacing:2px;
+  color:#e0483a; border-top:2px solid #e0483a; border-bottom:2px solid #e0483a;
+  transform:rotate(-8deg);
+}
+
+.torpedo-prompt{
+  margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center;
+  color:var(--ink-soft); font-size:13px; font-weight:600;
+  background:var(--panel); border:2px solid var(--line);
+  padding:8px 12px; border-radius:14px;
+}
+
+/* ---------------- оверлей конца боя ---------------- */
+.overlay{
+  position:fixed; inset:0; z-index:50;
+  background:rgba(224,247,255,.82);
+  display:flex; align-items:center; justify-content:center;
+}
+.overlay-card{
+  background:var(--panel);
+  border:3px solid var(--sun); border-radius:24px;
+  padding:30px 40px; text-align:center;
+  box-shadow:0 12px 0 rgba(232,164,28,.25), 0 30px 60px rgba(21,127,157,.25);
+}
+.overlay-emoji{ font-size:52px; }
+.overlay h2{ color:var(--coral-dark); letter-spacing:2px; margin:8px 0; }
+.overlay p{ color:var(--ink-soft); margin-bottom:18px; max-width:320px; font-weight:600; }
+.overlay-btns{ display:flex; gap:10px; justify-content:center; }
+
+/* ---------------- акценты карт (задел под карты-акватории) ----------------
+   Скрипт ставит body[data-map="..."]: вода на канвасе рисуется
+   скриптом, эти переменные подкрашивают рамки и бейдж. */
+body[data-map="tropics"]{ --frame:#ffffff; }
+body[data-map="lagoon"] { --frame:#eafaf4; }
+body[data-map="rocks"]  { --frame:#f6f1fa; }
+
+/* ---------------- телефон ---------------- */
+@media (max-width:700px){
+  body{ padding:8px 6px 26px; }
+  body::after{ font-size:20px; }
+  .topbar{ flex-wrap:wrap; row-gap:6px; }
+  .status{ order:-1; flex-basis:100%; width:100%; font-size:13px; }
+  .boards{ gap:14px; }
+  .board-block h3{ font-size:11px; }
+  .hp-row{ gap:8px; }
+  .hp-label{ width:auto; font-size:11px; }
+  .hp-num{ min-width:32px; font-size:11px; }
+  .cards-panel{ gap:9px; margin-top:10px; }
+  .card-btn{ width:106px; padding:10px 8px 8px; border-radius:13px; }
+  .card-icon{ width:38px; height:38px; }
+  .card-name{ font-size:11px; letter-spacing:1px; }
+  .card-desc{ font-size:9px; min-height:24px; }
+  .menu-card{ padding:22px 14px; margin-top:3vh; }
+  .mode-btn{ padding:10px 12px; gap:10px; }
+  .mode-icon{ width:36px; height:36px; }
+  .lore-box{ padding:12px 12px 10px; }
+  .overlay-card{ padding:24px 20px; margin:0 14px; }
+  .btn-gold{ padding:12px 38px; font-size:16px; }
+}
+
+/* уважение к системной настройке «меньше движения» */
+@media (prefers-reduced-motion: reduce){
+  body::before, body::after, .menu-card::after, .logo{ animation:none !important; }
+}
