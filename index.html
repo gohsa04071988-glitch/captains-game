@@ -6,6 +6,10 @@
 <meta name="theme-color" content="#051223">
 <title>Капитаны Островов — Морской бой с Боссом</title>
 <link rel="stylesheet" href="style.css">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
 <script>
 /* ============================================================
    КАРКАС-РЕЕСТР «Капитаны Островов» v2.0
@@ -17,7 +21,7 @@
    Сам index.html при добавлении режимов НЕ переписывается.
    ============================================================ */
 window.CPT = {
-  version: '2.0',
+  version: '2.2.1',
   _modes: [], _lore: [], _painters: [], _sel: null,
 
   mode: function(def){ this._modes.push(def); },
@@ -196,6 +200,7 @@ window.addEventListener('load', function(){ CPT.buildMenu(); });
 </section>
 
 <script src="game_core.js"></script>
+<script src="game_hints.js"></script>
 <script src="game_cards.js"></script>
 <script src="game_battle.js"></script>
 <script src="game_bot.js"></script>
@@ -205,5 +210,20 @@ window.addEventListener('load', function(){ CPT.buildMenu(); });
 <script src="kraken_attacks.js"></script>
 <script src="kraken_body.js"></script>
 <script src="kraken_render.js"></script>
+<script src="map_gen.js"></script>
+<script src="map_mode.js"></script>
+<script src="map_dice.js"></script>
+<script src="map_battle.js"></script>
+<script src="map_boss.js"></script>
+<script src="leviathan_boss.js"></script>
+<script src="map_story.js"></script>
+<script src="map_hall.js"></script>
+<script src="map_shop.js"></script>
+<script src="map_sea.js"></script>
+<script src="map_rogue.js"></script>
+<script src="net_link.js"></script>
+<script src="net_duel.js"></script>
+<script src="net_cards.js"></script>
+<script src="school_mode.js"></script>
 </body>
 </html>

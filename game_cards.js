@@ -31,7 +31,9 @@ const CARD_ICONS = {
   radar:   svgCardIcon('<circle cx="24" cy="27" r="4.5"/><path d="M24 27 L34 17"/><path d="M31 10 A17 17 0 0 1 41 20"/><path d="M27 4.5 A22 22 0 0 1 43.5 21"/><path d="M24 40 v3 M14 38 l-2.5 2.5 M34 38 l2.5 2.5" opacity=".55"/>'),
   repair:  svgCardIcon('<path d="M13 8 H29 V16 H13 Z"/><path d="M21 16 V38"/><path d="M15.5 41.5 C18 39 24 39 26.5 41.5"/><circle cx="21" cy="30" r="1.4" fill="currentColor" stroke="none"/>'),
   smoke:   svgCardIcon('<path d="M11 33 a6.5 6.5 0 0 1 2-12.7 A8.5 8.5 0 0 1 29.5 18 a7 7 0 0 1 8.5 9 A5.6 5.6 0 0 1 36.5 33 Z"/><path d="M16 39 h1 M25 41.5 h1 M33 39 h1" opacity=".6"/>'),
-  salvo:   svgCardIcon('<circle cx="13" cy="13.5" r="4.2"/><circle cx="34.5" cy="11.5" r="3.4"/><circle cx="24" cy="32" r="5.2"/><path d="M24 23.5 v-4.5 M33.5 36 l3.5 3 M14 36.5 l-3.5 3 M32.5 28.5 l4.5 1.5 M15.5 28.5 l-4.5 1.5" opacity=".7"/>')
+  salvo:   svgCardIcon('<circle cx="13" cy="13.5" r="4.2"/><circle cx="34.5" cy="11.5" r="3.4"/><circle cx="24" cy="32" r="5.2"/><path d="M24 23.5 v-4.5 M33.5 36 l3.5 3 M14 36.5 l-3.5 3 M32.5 28.5 l4.5 1.5 M15.5 28.5 l-4.5 1.5" opacity=".7"/>'),
+  wrath:   svgCardIcon('<path d="M12 6 c4 6 -1 9 3 14 c3 4 9 2 11 8"/><path d="M24 4 c1 7 -4 10 0 16"/><path d="M36 8 c-4 6 1 9 -3 14"/><circle cx="20" cy="36" r="1.6" fill="currentColor" stroke="none"/><circle cx="28" cy="37" r="1.6" fill="currentColor" stroke="none"/><circle cx="24" cy="31" r="1.6" fill="currentColor" stroke="none"/>'),
+  tsunami: svgCardIcon('<path d="M4 30 q6 -10 12 0 q6 -10 12 0 q6 -10 12 0"/><path d="M8 38 q5 -7 10 0 q5 -7 10 0 q5 -7 10 0" opacity=".65"/><path d="M30 8 c-4 6 0 9 0 13"/><path d="M22 12 c-2 4 0 6 0 9" opacity=".7"/>')
 };
 const CLASSIC_CARDS = {
   shield:  { name: 'Щит',     desc: 'Примет один выстрел на себя', tip: 'Щит висит над флотом; первый снаряд противника он примет на себя — и исчезнет навсегда.' },
@@ -39,7 +41,9 @@ const CLASSIC_CARDS = {
   radar:   { name: 'Радар',   desc: 'Покажет клетку корабля',      tip: 'Пинг укажет одну клетку уцелевшего корабля противника — золотой глаз останется на карте.' },
   repair:  { name: 'Ремонт',  desc: 'Залечит одну пробоину',       tip: 'Мастера заделают одну пробоину на вашем корабле.' },
   smoke:   { name: 'Дым',     desc: 'Выстрел противника вслепую',  tip: 'Дымовая завеса: следующий выстрел противника — случайный, без добивания раненых.' },
-  salvo:   { name: 'Залп',    desc: 'Три выстрела за один ход',    tip: 'Залп из трёх выстрелов подряд за один ход.' }
+  salvo:   { name: 'Залп',    desc: 'Три выстрела за один ход',    tip: 'Залп из трёх выстрелов подряд за один ход.' },
+  wrath:   { name: 'Гнев Кракена', desc: 'Щупальца бьют трижды',    tip: 'Часть силы поверженного Кракена: щупальца сами хлещут три случайные клетки моря противника. Одноразовая.' },
+  tsunami: { name: 'Цунами', desc: 'Волна бьёт четыре клетки',       tip: 'Часть силы поверженного Левиафана: волна накрывает четыре клетки одного ряда моря противника. Одноразовая.' }
 };
 
 let panelC = null;
@@ -52,10 +56,12 @@ function buildCardsPanelC(keys){
   if (keys){                       /* в бою: только выбранные карточки */
     pickHintC = null;
   } else {                         /* до боя: выбор трёх из шести */
-    keys = Object.keys(CLASSIC_CARDS);
+    keys = Object.keys(CLASSIC_CARDS).filter(k => k !== 'wrath' && k !== 'tsunami');   /* карточки боссов не выбирают — они приходят из трюма за победы */
     pickHintC = document.createElement('span');
     pickHintC.className = 'cards-hint';
     panelC.appendChild(pickHintC);
+    if (CPT.hint) CPT.hint('b-cards',
+      'Карточки — секретное оружие: выбери ТРИ из шести. Щит и ремонт можно сыграть, даже когда бот целится в тебя!');
   }
   for (const key of keys){
     const d = CLASSIC_CARDS[key];
@@ -236,6 +242,14 @@ function useCardC(key){
     S.cards.salvo = 0; S.salvoLeft = 3;
     updateCardsC();
     sayG('ЗАЛП! Три выстрела за один ход — стреляйте!');
+  } else if (key === 'wrath'){
+    S.cards.wrath = 0;             /* одноразовая, ход не переходит — бьют щупальца */
+    updateCardsC();
+    krakenWrathC(S);
+  } else if (key === 'tsunami'){
+    S.cards.tsunami = 0;           /* одноразовая, ход не переходит — бьёт волна */
+    updateCardsC();
+    leviTsunamiC(S);
   } else if (key === 'torpedo'){
     if (S.cardMode === 'torpedo'){
       S.cardMode = null; S.torp = null;
@@ -250,6 +264,100 @@ function useCardC(key){
       sayG('Ру-у-упор! Выберите воду у ЛЮБОГО края моря противника — торпеда всплывёт там.');
     }
   }
+}
+
+/* ---------------- «ГНЕВ КРАКЕНА» — часть силы босса ----------------
+   Три щупальца сами хлещут по трём случайным клеткам моря
+   противника. Ход не переходит между ударами; после третьего —
+   обычная передача хода. Если флот выбит — победа. */
+async function krakenWrathC(S){
+  S.phase = 'fire';
+  sayG('ГНЕВ КРАКЕНА! Щупальца хлещут по морю противника!');
+  let hits = 0;
+  for (let i = 0; i < 3; i++){
+    const cands = [];
+    for (let r = 0; r < S.N; r++)
+      for (let c = 0; c < S.N; c++)
+        if (!S.eShot[r][c] && !S.isleSet.has(r + ',' + c)) cands.push([r, c]);
+    if (!cands.length) break;
+    const [r, c] = rnd(cands);
+    const ship = S.eRefC[r][c];
+    const flight = shellPushC('E', r, c, 'me');
+    boomShotC();
+    await sleep(flight);
+    if (!S || S !== C || S.phase !== 'fire') return;
+    S.eShot[r][c] = ship ? 2 : 1;
+    if (ship){
+      ship.hits++; hits++;
+      fxPushC('E', r, c, 'boom');
+      toneC(140, .2, 'square', .06);
+    } else {
+      fxPushC('E', r, c, 'splash');
+      splashC();
+    }
+    await sleep(340);
+    if (!S || S !== C || S.phase !== 'fire') return;
+    if (allSunk(S.eShips)){
+      S.phase = 'over';
+      setTimeout(() => { if (S === C) gameOverC(true); }, 900);
+      return;
+    }
+  }
+  handOverToFoeC(hits
+    ? 'Щупальца пробили ' + (hits === 1 ? 'одну клетку' : hits + ' клетки') + '! Ход переходит противнику.'
+    : 'Щупальца били впустую! Ход переходит противнику.');
+}
+
+/* ---------------- «ЦУНАМИ» — часть силы Левиафана ----------------
+   Волна накрывает один ряд моря противника: четыре клетки
+   этого ряда. Ход не переходит между ударами; после волны —
+   обычная передача хода. Если флот выбит — победа. */
+async function leviTsunamiC(S){
+  S.phase = 'fire';
+  sayG('ЦУНАМИ! Волна Левиафана накрывает ряд противника!');
+  let hits = 0;
+  const rows = [];
+  for (let r = 0; r < S.N; r++){
+    const free = [];
+    for (let c = 0; c < S.N; c++)
+      if (!S.eShot[r][c] && !S.isleSet.has(r + ',' + c)) free.push(c);
+    if (free.length) rows.push({ r, free });
+  }
+  if (!rows.length) return;
+  rows.sort((a, b) => b.free.length - a.free.length);
+  const row = rows[0].free.length >= 4
+    ? rows.find(x => x.free.length >= 4) || rows[0]
+    : rows[0];
+  const pool = row.free.slice();
+  const cells = [];
+  for (let k = 0; k < 4 && pool.length; k++)
+    cells.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  for (const c of cells){
+    const ship = S.eRefC[row.r][c];
+    const flight = shellPushC('E', row.r, c, 'me');
+    boomShotC();
+    await sleep(flight);
+    if (!S || S !== C || S.phase !== 'fire') return;
+    S.eShot[row.r][c] = ship ? 2 : 1;
+    if (ship){
+      ship.hits++; hits++;
+      fxPushC('E', row.r, c, 'boom');
+      toneC(140, .2, 'square', .06);
+    } else {
+      fxPushC('E', row.r, c, 'splash');
+      splashC();
+    }
+    await sleep(340);
+    if (!S || S !== C || S.phase !== 'fire') return;
+    if (allSunk(S.eShips)){
+      S.phase = 'over';
+      setTimeout(() => { if (S === C) gameOverC(true); }, 900);
+      return;
+    }
+  }
+  handOverToFoeC(hits
+    ? 'Волна пробила ' + (hits === 1 ? 'одну клетку' : hits + ' клетки') + ' в ряду ' + (row.r + 1) + '! Ход переходит противнику.'
+    : 'Волна прокатилась впустую! Ход переходит противнику.');
 }
 
 /* торпеда всплывает там, где капитан ткнул: вода у ЛЮБОГО края

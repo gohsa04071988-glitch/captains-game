@@ -12,7 +12,10 @@
    ============================================================ */
 const FLEETS = {
   easy: { N: 8,  CELL: 54, PAD: 22, fleet: [3, 2, 2, 1] },
-  hard: { N: 10, CELL: 46, PAD: 22, fleet: [4, 3, 2, 2] }
+  hard: { N: 10, CELL: 46, PAD: 22, fleet: [4, 3, 2, 2] },
+  /* этап 3 блок 1b: эскадра Левиафана на поле 10×10; флот игрока
+     остаётся 4-3-2-2 — его задаёт opts.playerFleet */
+  leviathan: { N: 10, CELL: 46, PAD: 22, fleet: [5, 4, 3, 3, 2] }
 };
 
 let C = null;   // состояние текущей партии классического боя
@@ -44,8 +47,9 @@ function setMapBadge(name){
 
 function mkGridC(n){ return Array.from({ length: n }, () => Array(n).fill(0)); }
 
-function startClassic(mode){
+function startClassic(mode, opts){
   const cfg = FLEETS[mode];
+  opts = opts || {};               // поход передаёт lvl/имя острова/трюм, босс — over/levi/intro
   const size = cfg.N * cfg.CELL + cfg.PAD * 2;
   const mapKey = rnd(Object.keys(MAPS));
   const map = MAPS[mapKey];
@@ -53,6 +57,9 @@ function startClassic(mode){
   const isleSet = new Set(isles.flat().map(([r, c]) => r + ',' + c));
   C = {
     mode, N: cfg.N, CELL: cfg.CELL, PAD: cfg.PAD, fleet: cfg.fleet,
+    lvl: opts.lvl || 1,             // бот умнее на дальних островах похода
+    fromMap: !!opts.fromMap,        // бой пришёл с карты похода (map_battle.js)
+    mapHold: opts.hold || null,     // карточки, бывшие в трюме корабля
     mapKey, map, isles, isleSet,
     phase: 'place',                 // place | player | bot | over
     pGridC: mkGridC(cfg.N),         // занятость клеток игрока
@@ -63,7 +70,10 @@ function startClassic(mode){
     eRefC: mkGridC(cfg.N),
     eShips: [],
     eShot: mkGridC(cfg.N),          // выстрелы игрока по врагу
-    queue: cfg.fleet.slice(), qi: 0, hor: true,
+    overFn: opts.over || null,     // босс похода забирает итог боя себе (leviathan_boss.js)
+    levi: !!opts.levi,             // накат волны: каждый 3-й ход бота (game_bot.js)
+    leviTurn: 0,
+    queue: (opts.playerFleet || cfg.fleet).slice(), qi: 0, hor: true,
     hoverE: null, hoverP: null,
     wounded: [],                    // раненые клетки для добивания ботом
     cards: {},                      // колода в бою: три выбранные, по одной
@@ -74,23 +84,29 @@ function startClassic(mode){
     fx: [],
     t0: performance.now()
   };
+  if (opts.hold) opts.hold.slice(0, 3).forEach(k => C.pick.add(k));  // трюм уже выбрал
   document.body.dataset.map = mapKey;      // акцент карты в CSS
   placeEnemyFleetC();
   $('game-over').classList.add('hidden');
   $('btn-auto').classList.remove('hidden');
   $('btn-rotate').classList.remove('hidden');
   $('place-info').classList.remove('hidden');
+  if (CPT.hint) CPT.hint('b-place',
+    'Расставь флот: нажми на свою доску — корабль встанет. «⟳ Повернуть» крутит корабль, «⚓ Авто» расставит всё сам.');
   initCanvasC();
   buildCardsPanelC();          // до боя: выбор трёх карточек из шести
   buildTorpPromptC();
   hideTorpPromptC();
   panelC.classList.remove('hidden');
   updateCardsC();
-  setMapBadge(map.name);
+  setMapBadge(opts.mapName || map.name);
   updatePlaceInfo();
   setTurnC('place');
+  $('btn-game-again').textContent = 'Заново';
   showScreen('game');
-  sayG('Карта «' + map.name + '». Расставьте флот и выберите 3 карточки капитана.');
+  sayG(opts.intro ||
+       ((opts.fromMap ? 'Остров «' + opts.mapName + '». ' : 'Карта «' + map.name + '». ') +
+        'Расставьте флот и выберите 3 карточки капитана.'));
 }
 
 function initCanvasC(){
@@ -209,6 +225,7 @@ function beginBattleC(){
   S.phase = 'player';
   S.cards = {};
   S.pick.forEach(k => S.cards[k] = 1);   // колода: те три, что выбрал капитан
+  if (S.fromMap && CPT.mapBattle) CPT.mapBattle.consume([...S.pick]);  // трюмные — потрачены
   $('btn-auto').classList.add('hidden');
   $('btn-rotate').classList.add('hidden');
   $('place-info').classList.add('hidden');
@@ -217,6 +234,8 @@ function beginBattleC(){
   updateCardsC();
   setTurnC('me');
   sayG('Бой! Стреляйте по флоту противника или сыграйте карточкой.');
+  if (CPT.hint) CPT.hint('b-fire',
+    'Твой выстрел: нажми клетку на доске «Флот противника». Огонь — попал, всплеск — промазал. Один выстрел — один ход.');
 }
 
 function rotateC(){
@@ -318,12 +337,14 @@ function gameOverC(win){
   const S = C;
   if (!S) return;
   S.phase = 'over';
+  S._mapWin = win;                     // результат ждёт map_battle.js
   $('go-emoji').textContent = win ? '🏆' : '💀';
   $('go-title').textContent = win ? 'ПОБЕДА!' : 'ПОРАЖЕНИЕ';
   $('go-text').textContent = win
     ? 'Флот противника уничтожен. Море наше, капитан!'
     : 'Ваш флот ушёл на дно... В следующий раз держите корабли в строю.';
   $('game-over').classList.remove('hidden');
+  $('btn-game-again').textContent = (S.fromMap || S.overFn) ? '🧭 В поход' : 'Заново';
   sayG(win ? '🏆 Победа!' : '💀 Поражение...');
   setTurnC('me');
 }
@@ -372,5 +393,14 @@ window.addEventListener('keydown', e => {
 $('btn-auto').addEventListener('click', () => { if (C && C.phase === 'place') autoPlaceC(); });
 $('btn-rotate').addEventListener('click', rotateC);
 $('btn-quit-game').addEventListener('click', () => { if (C) C.phase = 'over'; showScreen('menu'); });
-$('btn-game-again').addEventListener('click', () => startClassic(C ? C.mode : 'easy'));
+$('btn-game-again').addEventListener('click', () => {
+  if (C && C.fromMap){ CPT.mapBattle.back(C._mapWin); return; }   // остров → назад в поход
+  if (C && typeof C.overFn === 'function'){                       // босс похода → его итог
+    const fn = C.overFn, win = C._mapWin;
+    C.overFn = null;
+    fn(win);
+    return;
+  }
+  startClassic(C ? C.mode : 'easy');
+});
 $('btn-game-menu').addEventListener('click', () => showScreen('menu'));

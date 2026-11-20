@@ -45,7 +45,6 @@
    game_fx.js     — метки, стрелки, летящий снаряд, эффекты.
    Порядок подключения — внизу index.html. */
 
-
 /* ---------------- общие утилиты ---------------- */
 const $ = id => document.getElementById(id);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -430,7 +429,10 @@ window.addEventListener('load', function(){
     ['kraken_boss.js',    ['startKrakenBoss', 'krakenTurn']],
     ['kraken_attacks.js', ['krakenAttack', 'bossShot']],
     ['kraken_body.js',    ['drawKraken']],
-    ['kraken_render.js',  []]      /* BossRender проверяем отдельно */
+    ['kraken_render.js',  []],     /* BossRender проверяем отдельно */
+    ['map_gen.js',        ['mapGenerate', 'mapLoad']],
+    ['map_mode.js',       ['startMapMode']],
+    ['map_dice.js',       ['mapDiceRoll']]
   ];
   const lost = crew.filter(r => !r[1].every(fn => typeof window[fn] === 'function')).map(r => r[0]);
   if (typeof window.BossRender !== 'function') lost.push('kraken_render.js');
