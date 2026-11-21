@@ -173,7 +173,8 @@ function schoolFinishLesson(){
 CPT.mode({
   id: 'school',
   name: 'ШКОЛА ЮНГИ',
-  desc: 'Как играть · три коротких урока',
+  desc: '3 коротких урока',
+  row: 'duo',
   icon: ICON_SCHOOL,
   start: function(){ schoolOpen(); }
 });

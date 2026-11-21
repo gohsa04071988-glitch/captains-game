@@ -24,7 +24,8 @@ const ICON_MAP = '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" str
 CPT.mode({
   id: 'map',
   name: 'ПОХОД ПО КАРТЕ',
-  desc: 'Карта-поход · корабль · сундуки · острова',
+  desc: 'сундуки · боссы · золото',
+  row: 'duo',
   icon: ICON_MAP,
   start: function(){ startMapMode(); }
 });

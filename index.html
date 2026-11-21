@@ -4,105 +4,71 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#051223">
+<meta name="description" content="Морской бой с боссами: поход по карте с сундуками, дуэль с другом по коду на двух устройствах и школа юнги. Бесплатно, прямо в браузере — на телефоне и компьютере.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Капитаны Островов">
+<meta property="og:title" content="Капитаны Островов — морской бой: один, с боссом или с другом">
+<meta property="og:description" content="Дуэль с другом по коду на двух телефонах, поход по карте с сундуками, боссы Кракен и Левиафан. Прямо в браузере, без установки.">
+<meta property="og:image" content="og-banner.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Капитаны Островов — морской бой с боссом: дуэль с другом по коду, боссы и поход по карте">
+<meta property="og:locale" content="ru_RU">
+<meta name="twitter:card" content="summary_large_image">
 <title>Капитаны Островов — Морской бой с Боссом</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
-<script>
-/* ============================================================
-   КАРКАС-РЕЕСТР «Капитаны Островов» v2.0
-   Модули регистрируются сами, каркас их только собирает:
-     CPT.mode({...})   — кнопка режима в главном меню
-     CPT.lore({...})   — историческая справка в меню
-     CPT.painter(fn)   — художник в общий игровой кадр
-   Новый режим = новый js-файл с одной регистрацией.
-   Сам index.html при добавлении режимов НЕ переписывается.
-   ============================================================ */
-window.CPT = {
-  version: '2.2.1',
-  _modes: [], _lore: [], _painters: [], _sel: null,
+<script src="cpt_core.js"></script>
 
-  mode: function(def){ this._modes.push(def); },
-  lore: function(def){ this._lore.push(def); },
-  painter: function(fn){ this._painters.push(fn); },
-
-  buildMenu: function(){
-    var ml = document.getElementById('modes-list');
-    if (ml){
-      ml.innerHTML = '';
-      for (var i = 0; i < this._modes.length; i++){
-        var m = this._modes[i];
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'mode-btn' + (m.cls ? ' ' + m.cls : '') +
-                      (this._sel === m.id ? ' selected' : '');
-        b.dataset.mode = m.id;
-        b.innerHTML =
-          '<span class="mode-icon">' + (m.icon || '') + '</span>' +
-          '<span class="mode-text"><span class="mode-name">' + m.name + '</span>' +
-          '<span class="mode-desc">' + m.desc + '</span></span>';
-        b.addEventListener('click', function(){
-          document.querySelectorAll('.mode-btn').forEach(function(x){
-            x.classList.remove('selected');
-          });
-          this.classList.add('selected');
-          CPT._sel = this.dataset.mode;
-          document.getElementById('btn-start').disabled = false;
-        });
-        ml.appendChild(b);
-      }
-    }
-    var lr = document.getElementById('lore-row');
-    if (lr){
-      lr.innerHTML = '';
-      for (var j = 0; j < this._lore.length; j++){
-        var l = this._lore[j];
-        var lb = document.createElement('button');
-        lb.type = 'button';
-        lb.className = 'lore-btn';
-        lb.textContent = l.title;
-        (function(def){
-          lb.addEventListener('click', function(){
-            var box = document.getElementById('lore-box');
-            box.textContent = def.text;
-            box.classList.remove('hidden');
-          });
-        })(l);
-        lr.appendChild(lb);
-      }
-    }
-    var vt = document.getElementById('ver-tag');
-    if (vt) vt.textContent = 'v' + this.version;
-  }
-};
-
-/* Service Worker'ы прошлых версий мешают обновам — снимаем их. */
-if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations){
-  navigator.serviceWorker.getRegistrations().then(function(rs){
-    rs.forEach(function(r){ r.unregister(); });
-  }).catch(function(){});
-}
-
-window.addEventListener('load', function(){ CPT.buildMenu(); });
-</script>
 </head>
 <body>
 
-<!-- ==================== ГЛАВНОЕ МЕНЮ ==================== -->
+<!-- ==================== ГЛАВНОЕ МЕНЮ ====================
+     v3 «пляжная витрина»: меню — вся сцена, а не карточка.
+     Облака и кораблик — общие по body (style.css), здесь только
+     солнце и жители пляжа. Общесистемное золото — только у
+     главной кнопки и у выбранного режима. -->
 <section id="screen-menu" class="screen active">
-  <div class="menu-card">
-    <h1 class="logo">КАПИТАНЫ ОСТРОВОВ</h1>
+  <div class="menu-scene" aria-hidden="true">
+    <div class="ms-sun"></div>
+    <div class="ms-palm">🌴</div>
+    <div class="ms-crab">🦀</div>
+  </div>
+
+  <!-- судовой журнал: кнопка в углу открывает ряд исторических справок -->
+  <div class="menu-corner">
+    <button id="btn-journal" class="corner-btn" type="button" aria-label="Судовой журнал">📓</button>
+    <span class="corner-lbl">Журнал</span>
+  </div>
+
+  <div class="logo-wrap">
+    <h1 class="logo">КАПИТАНЫ<b>ОСТРОВОВ</b></h1>
     <p class="subtitle">Морской бой с Боссом</p>
+  </div>
 
-    <!-- Кнопки режимов строит CPT.buildMenu() из реестра -->
-    <div id="modes-list" class="modes"></div>
+  <!-- витрину строит CPT.buildMenu(): бои 2×2, ниже пара Школа + Поход -->
+  <div id="modes-list" class="modes"></div>
+  <div id="duo-list" class="duo"></div>
 
-    <div id="lore-row" class="lore-row"></div>
-    <div id="lore-box" class="lore-box hidden"></div>
+  <div id="lore-row" class="lore-row hidden"></div>
+  <div id="lore-box" class="lore-box hidden"></div>
 
-    <button id="btn-start" class="btn-gold" disabled>В БОЙ</button>
+  <div class="menu-bottom">
+    <button id="btn-start" class="btn-gold cta" disabled>В БОЙ! ▶</button>
+
+    <!-- тизер будущих релизов: нажимать нечего, просто витрина -->
+    <div class="teaser">
+      <span class="teaser-medal">🚢<i>🔒</i></span>
+      <span class="teaser-text"><b>Скоро в релиз: живой бой с кораблями</b><small>корабли плавают и стреляют прямо на поле</small></span>
+      <span class="teaser-badge">СКОРО</span>
+    </div>
+
     <div class="menu-foot"><span id="ver-tag" class="ver-tag"></span></div>
   </div>
 </section>

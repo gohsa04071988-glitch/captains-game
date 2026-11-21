@@ -8,7 +8,13 @@
      пружинят, как настоящие большие кнопки;
    - переворот доски СПОКОЙНЫЙ: почти секунда, мягкий разгон;
    - задел под карты: бейдж названия карты (#map-badge)
-     и переменные акцентов карт (body[data-map]).
+     и переменные акцентов карт (body[data-map]);
+  Новое в v2.3 (меню v3):
+   - витрина режимов 2×2 цветными карточками + пара Школа/Поход;
+   - порядок кнопок задаёт CSS (order по data-mode), JS-реестр не тронут;
+   - двухцветный логотип с контуром (Russo One), чип-подзаголовок;
+   - карточка меню — полупрозрачный пергамент без blur (экономно);
+   - тизер будущих релизов с замком внизу меню.
    ============================================================ */
 
 :root{
@@ -28,7 +34,7 @@
 body{
   min-height:100vh;
   color:var(--ink);
-  font-family:'Segoe UI', 'Trebuchet MS', Roboto, Arial, sans-serif;
+  font-family:'Nunito', 'Segoe UI', 'Trebuchet MS', Roboto, Arial, sans-serif;
   /* пляжная сцена: небо, полоска моря, песок */
   background:linear-gradient(180deg,
     var(--sky) 0%, var(--sky2) 24%,
@@ -79,12 +85,12 @@ body::after{
 
 /* ---------------- кнопки: большие и пружинистые ---------------- */
 .btn-gold{
-  cursor:pointer; font-family:inherit;
-  background:linear-gradient(180deg,#ffe27a,#ffc63c);
-  color:#6b4400; border:none; border-radius:999px;
-  font-size:18px; font-weight:800; letter-spacing:3px;
-  padding:14px 48px;
-  box-shadow:0 6px 0 var(--sun-dark), 0 12px 22px rgba(232,164,28,.35);
+  cursor:pointer; font-family:'Russo One','Nunito','Segoe UI',sans-serif;
+  background:linear-gradient(180deg,#ffef9e 0%,#ffe27a 34%,#ffc63c 70%,#f5ab17 100%);
+  color:#6b4400; border:none; border-radius:24px;
+  font-size:20px; font-weight:400; letter-spacing:3px;
+  padding:16px 52px;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.5), 0 6px 0 var(--sun-dark), 0 12px 22px rgba(232,164,28,.35);
   transition:transform .16s, box-shadow .16s;
 }
 .btn-gold:hover:not(:disabled){ transform:translateY(-2px); box-shadow:0 8px 0 var(--sun-dark), 0 16px 26px rgba(232,164,28,.4); }
@@ -118,76 +124,217 @@ body::after{
 .view-btn{ color:var(--sea-dark); }
 .view-btn.on{ background:#fff5d8; color:#8a5f00; border-color:#f0cd77; }
 
-/* ---------------- меню ---------------- */
+/* ---------------- ГЛАВНОЕ МЕНЮ v3: пляжная витрина ----------------
+   Меню — вся сцена, а не карточка: солнце, море, песок, жители
+   пляжа. Витрина — колонка 470px (на телефоне — вся ширина).
+   Золото — только у главной кнопки «В БОЙ!» и выбранного режима.
+   Школа и лобби дуэли живут в .menu-card — стиль не тронут. */
 .menu-card{
-  margin-top:5vh; width:min(560px,94vw);
-  background:var(--panel);
-  border:2px solid #ffe1ad; border-radius:24px;
-  padding:28px 26px; text-align:center;
-  box-shadow:0 10px 0 rgba(31,120,160,.10), 0 24px 50px rgba(21,127,157,.18);
-  position:relative; overflow:hidden;
+  margin-top:4vh; width:min(560px,94vw);
+  /* «стекло на пляже»: полупрозрачный пергамент, без blur — экономно для слабых телефонов */
+  background:rgba(255,251,235,.78);
+  border:2.5px solid rgba(40,80,107,.35); border-radius:26px;
+  padding:26px 20px 18px; text-align:center;
+  box-shadow:0 10px 0 rgba(31,120,160,.10), 0 24px 50px rgba(21,127,157,.20);
+  position:relative;
 }
-/* пальма на «пляже» и волны внизу карточки */
-.menu-card::before{
-  content:'🌴'; position:absolute; bottom:4px; left:16px;
-  font-size:28px; transform:rotate(6deg); opacity:.95;
-  pointer-events:none;
+/* витрина-колонка «телефона» и на десктопе; чернильный цвет внутри
+   меню чуть темнее и звонче — только в меню, боевые экраны не тронут */
+#screen-menu{
+  --ink:#1d3049; --ink-soft:#5f8299;
+  width:min(470px,100%);
+  min-height:calc(100vh - 40px);
+  min-height:calc(100dvh - 40px);
+  padding:0 18px;
 }
-.menu-card::after{
-  content:''; position:absolute; left:-20px; right:-20px; bottom:-6px; height:64px;
-  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='480' height='64' viewBox='0 0 480 64'><g fill='none' stroke='%232fb7cf' stroke-width='2.4'><path d='M0 26 Q30 14 60 26 T120 26 T180 26 T240 26 T300 26 T360 26 T420 26 T480 26' stroke-opacity='.30'/><path d='M0 50 Q30 40 60 50 T120 50 T180 50 T240 50 T300 50 T360 50 T420 50 T480 50' stroke-opacity='.16'/></g></svg>") repeat-x left bottom / 480px 64px;
-  pointer-events:none;
-  animation:menuWaves 9s ease-in-out infinite;
+/* сцена: солнце и жители пляжа (облака и кораблик — общие, по body) */
+.menu-scene{ position:absolute; inset:0; z-index:0; pointer-events:none; }
+.ms-sun{
+  position:absolute; top:16px; left:12px; width:56px; height:56px; border-radius:50%;
+  background:radial-gradient(circle at 38% 35%, #ffe98c, var(--sun));
+  box-shadow:0 0 0 10px rgba(255,207,77,.30), 0 0 26px 8px rgba(255,214,102,.45);
 }
-@keyframes menuWaves{
-  0%,100%{ transform:translateX(0); }
-  50%{     transform:translateX(-26px); }
+.ms-palm{ position:absolute; left:-2px; bottom:132px; font-size:36px; transform:rotate(-8deg); }
+.ms-crab{ position:absolute; right:10px; bottom:144px; font-size:22px; }
+/* кнопка судового журнала в углу: открывает ряд исторических справок */
+.menu-corner{ position:absolute; top:28px; right:12px; z-index:5;
+  display:flex; flex-direction:column; align-items:center; gap:3px; }
+.corner-btn{
+  width:50px; height:50px; border-radius:50%; border:3px solid var(--ink);
+  background:linear-gradient(180deg,#fffdf4,var(--sand2));
+  display:grid; place-items:center; font-size:22px; cursor:pointer;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.5), 0 4px 0 #cdb98c, 0 8px 14px rgba(21,127,157,.18);
+  transition:transform .16s, box-shadow .16s;
 }
+.corner-btn:hover{ transform:translateY(-2px); }
+.corner-btn:active{ transform:translateY(2px); box-shadow:inset 0 2px 0 rgba(255,255,255,.5), 0 1px 0 #cdb98c; }
+.corner-btn.open{ background:linear-gradient(180deg,#ffef9e,var(--sun)); }
+.corner-lbl{ font-size:9.5px; font-weight:900; letter-spacing:.5px; color:var(--ink);
+  background:rgba(255,255,255,.85); border:1.5px solid var(--ink); border-radius:8px; padding:1px 7px; }
+.logo-wrap{ margin-top:52px; text-align:center; position:relative; z-index:2; }
 .logo{
-  font-size:clamp(24px,4.8vw,34px); letter-spacing:2px; font-weight:800;
-  background:linear-gradient(92deg, var(--sea-dark) 0%, var(--sea) 38%, var(--coral) 100%);
-  -webkit-background-clip:text; background-clip:text;
-  -webkit-text-fill-color:transparent; color:var(--sea-dark);
+  font-family:'Russo One','Nunito','Segoe UI',sans-serif;
+  font-size:clamp(26px,7.2vw,34px); letter-spacing:2px; line-height:1.05;
+  font-weight:400; color:#fff;
+  /* белый с тёмным контуром: читается и на небе, и при солнце */
+  text-shadow:
+    -1.6px -1.6px 0 #14425c, 1.6px -1.6px 0 #14425c,
+    -1.6px 1.6px 0 #14425c, 1.6px 1.6px 0 #14425c,
+    0 3px 0 #14425c, 0 6px 14px rgba(21,127,157,.35);
   animation:logoFloat 3.6s ease-in-out infinite;
+}
+.logo b{
+  display:block; font-size:clamp(31px,8.4vw,42px); letter-spacing:3px;
+  color:var(--sun);
+  text-shadow:
+    -1.8px -1.8px 0 #8a5a10, 1.8px -1.8px 0 #8a5a10,
+    -1.8px 1.8px 0 #8a5a10, 1.8px 1.8px 0 #8a5a10,
+    0 3px 0 #8a5a10, 0 6px 16px rgba(191,127,14,.35);
 }
 @keyframes logoFloat{
   0%,100%{ transform:translateY(0); }
   50%{     transform:translateY(-4px); }
 }
 .subtitle{
-  color:var(--coral-dark); margin:6px 0 20px;
-  letter-spacing:3px; text-transform:uppercase; font-size:12px; font-weight:700;
+  display:inline-block; margin:10px 0 0;
+  background:rgba(255,255,255,.85); border:2px solid var(--ink); border-radius:999px;
+  padding:4px 18px; letter-spacing:2px; text-transform:uppercase;
+  font-size:11px; font-weight:800; color:var(--ink);
+  box-shadow:0 3px 0 rgba(40,80,107,.25);
 }
-.menu-foot{ margin-top:14px; }
-.ver-tag{ font-size:11px; letter-spacing:2px; color:var(--ink-soft); opacity:.85; }
+.menu-foot{ margin-top:2px; }
+.ver-tag{ font-size:10px; letter-spacing:2px; color:var(--ink-soft); opacity:.85; }
 
-/* карточки режимов: иконка + текст */
-.modes{ display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
+/* витрина режимов: бои 2×2, ниже — пара Школа+Поход (.duo).
+   Порядок задаём CSS-ом (order по data-mode), JS-реестр не тронут:
+   новый режим просто встанет в конец. Свободное место пляжа
+   распределяют margin-top:auto — как в одобренной болванке. */
+.modes{
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px; width:100%; margin-top:auto; position:relative; z-index:2;
+}
+.duo{
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px; width:100%; margin-top:auto; position:relative; z-index:2;
+}
 .mode-btn{
-  cursor:pointer; font-family:inherit; text-align:left;
-  display:flex; align-items:center; gap:14px;
-  padding:11px 16px; border-radius:18px;
-  background:var(--panel2); border:2px solid var(--line); color:var(--ink);
-  box-shadow:0 4px 0 rgba(31,120,160,.12);
-  transition:transform .16s, border-color .16s, box-shadow .16s, background .16s;
+  order:7;
+  cursor:pointer; font-family:inherit; text-align:left; position:relative;
+  display:flex; align-items:center; gap:10px; min-width:0;
+  padding:12px; border-radius:22px;
+  color:var(--ink);
+  border:3px solid var(--ink);
+  background:linear-gradient(180deg,#fdf7e3,var(--sand2));
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.35), inset 0 -3px 0 rgba(0,0,0,.12),
+             0 6px 0 var(--edge,#8fa8bb), 0 11px 16px rgba(21,127,157,.22);
+  transition:transform .16s, box-shadow .16s;
 }
-.mode-btn:hover{ border-color:var(--sea); transform:translateY(-2px) rotate(-.4deg); box-shadow:0 6px 0 rgba(31,120,160,.12); }
+.mode-btn:hover{ transform:translateY(-2px); }
+.mode-btn:active{
+  transform:translateY(3px);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.35), 0 2px 0 var(--edge,#8fa8bb), 0 5px 10px rgba(21,127,157,.2);
+}
+/* цвет = смысл: каждый режим — свой градиент и своя грань */
+.mode-btn[data-mode="easy"]  { order:1; --edge:#2e8340; background:linear-gradient(180deg,#7fd98f 0%,#4ab95f 55%,#37a04c 100%); }
+.mode-btn[data-mode="hard"]  { order:2; --edge:#c74a2a; background:linear-gradient(180deg,#ffa385 0%,#ff7a52 55%,#e8602f 100%); }
+.mode-btn[data-mode="kraken"]{ order:3; --edge:#6f47ad; background:linear-gradient(180deg,#bda4ec 0%,#9a6bd8 55%,#7d51bd 100%); }
+.mode-btn[data-mode="duel"]  { order:4; --edge:#2f6fb2; background:linear-gradient(180deg,#8cc0f2 0%,#4a90d9 55%,#3a7fc0 100%); }
+.mode-btn[data-mode="school"]{ order:5; --edge:#cdb98c; background:linear-gradient(180deg,#fffdf4 0%,#fdf3d9 55%,#f6e7bd 100%); }
+.mode-btn[data-mode="map"]   { order:6; --edge:#1f779e; background:linear-gradient(180deg,#63c4e8 0%,#2f9dc9 55%,#1f7ba3 100%); }
+.mode-btn[data-mode="easy"]   .mode-name, .mode-btn[data-mode="hard"]   .mode-name,
+.mode-btn[data-mode="kraken"] .mode-name, .mode-btn[data-mode="duel"]   .mode-name,
+.mode-btn[data-mode="map"]    .mode-name{ color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.22); }
+.mode-btn[data-mode="easy"]   .mode-desc, .mode-btn[data-mode="hard"]   .mode-desc,
+.mode-btn[data-mode="kraken"] .mode-desc, .mode-btn[data-mode="duel"]   .mode-desc,
+.mode-btn[data-mode="map"]    .mode-desc{ color:rgba(255,255,255,.95); }
+/* выбранный режим: бело-золотое кольцо + галочка */
 .mode-btn.selected{
-  border-color:var(--coral); background:#fff6ef;
-  box-shadow:0 0 0 3px rgba(255,122,89,.28), 0 4px 0 rgba(224,85,55,.22);
+  box-shadow:0 0 0 4px #fff, 0 0 0 8px var(--sun),
+             inset 0 2px 0 rgba(255,255,255,.35), 0 6px 0 var(--edge,#8fa8bb),
+             0 12px 18px rgba(232,164,28,.4);
 }
-.mode-icon{ width:44px; height:44px; flex:none; color:var(--sun-dark); opacity:.95; }
-.mode-icon svg{ width:100%; height:100%; display:block; }
-.mode-btn.boss .mode-icon{ color:#9a6bd8; }
+.mode-btn.selected::after{
+  content:'✓'; position:absolute; top:-13px; right:-9px;
+  width:30px; height:30px; border-radius:50%;
+  background:linear-gradient(180deg,#ffe27a,#ffc63c);
+  border:2.5px solid var(--ink); color:#6b4400;
+  display:grid; place-items:center; font-size:14px; font-weight:900;
+  box-shadow:0 3px 0 #c98f10;
+}
+.mode-btn.selected .mode-name{ padding-right:16px; }
+/* медальон: белая «тарелочка», иконка — цветом режима */
+.mode-icon{
+  width:50px; height:50px; flex:none;
+  background:linear-gradient(180deg,#ffffff,#f2fafd);
+  border:3px solid var(--ink); border-radius:17px;
+  display:grid; place-items:center;
+  box-shadow:inset 0 -3px 0 rgba(21,127,157,.12), 0 3px 6px rgba(29,80,107,.18);
+  color:var(--ink);
+}
+.mode-icon svg{ width:28px; height:28px; display:block; }
+.mode-btn[data-mode="easy"]   .mode-icon{ color:#2e8340; }
+.mode-btn[data-mode="hard"]   .mode-icon{ color:#c74a2a; }
+.mode-btn[data-mode="kraken"] .mode-icon{ color:#6f47ad; }
+.mode-btn[data-mode="duel"]   .mode-icon{ color:#2f6fb2; }
+.mode-btn[data-mode="map"]    .mode-icon{ color:#1f779e; }
+.mode-btn[data-mode="school"] .mode-icon{ color:#8a5a10; background:linear-gradient(180deg,#ffef9e,#ffc63c); }
 .mode-text{ flex:1; min-width:0; }
-.mode-name{ display:block; font-weight:800; letter-spacing:1px; color:var(--ink); }
-.mode-btn.boss .mode-name{ color:#7a4fc0; }
-.mode-desc{ display:block; font-size:12px; color:var(--ink-soft); margin-top:3px; }
+.mode-name{
+  display:block; font-family:'Russo One','Nunito','Segoe UI',sans-serif;
+  font-weight:400; font-size:15px; letter-spacing:.6px; line-height:1.15;
+  color:var(--ink);
+}
+.mode-desc{ display:block; font-size:10px; font-weight:800; color:var(--ink-soft); margin-top:3px; line-height:1.3; }
+/* школа: флажок «учимся» — заметный вход, не иконка в углу */
+.mode-btn[data-mode="school"]::before{
+  content:'УЧИМСЯ'; position:absolute; top:-11px; left:12px;
+  background:linear-gradient(180deg,#7fd9ec,#2fb7cf);
+  border:2px solid var(--ink); border-radius:999px;
+  padding:1px 9px; font-size:8.5px; font-weight:900; letter-spacing:1.2px;
+  color:#fff; box-shadow:0 2px 0 var(--sea-dark);
+}
+/* пара Школа+Поход: компактнее боевых карточек */
+.mode-btn[data-mode="school"] .mode-icon, .mode-btn[data-mode="map"] .mode-icon{ width:42px; height:42px; border-radius:14px; }
+.mode-btn[data-mode="school"] .mode-icon svg, .mode-btn[data-mode="map"] .mode-icon svg{ width:24px; height:24px; }
+.mode-btn[data-mode="school"] .mode-name, .mode-btn[data-mode="map"] .mode-name{ font-size:12.5px; }
+.mode-btn[data-mode="school"] .mode-desc, .mode-btn[data-mode="map"] .mode-desc{ font-size:9px; }
+/* низ витрины: главная кнопка, тизер, версия */
+.menu-bottom{ margin-top:auto; width:100%; display:flex; flex-direction:column;
+  align-items:center; gap:10px; position:relative; z-index:2; }
+.cta{ width:100%; height:72px; padding:0; font-size:22px; letter-spacing:3px; border-radius:24px; }
 
-.lore-row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:10px; }
+/* ---------------- тизер будущих релизов ---------------- */
+.teaser{
+  width:100%; display:flex; align-items:center; gap:11px; text-align:left;
+  margin-top:2px; padding:9px 12px; border-radius:20px;
+  border:2.5px solid var(--ink); color:#fff;
+  background:linear-gradient(180deg,#2f517d 0%,#22406a 45%,#1b3355 100%);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.22), 0 5px 0 #0f2138, 0 10px 16px rgba(29,48,73,.3);
+}
+.teaser-medal{
+  width:44px; height:44px; flex:none; border-radius:14px;
+  background:linear-gradient(180deg,#4a76ad,#31537f);
+  border:2.5px solid rgba(255,255,255,.55);
+  display:grid; place-items:center; font-size:21px;
+  position:relative; box-shadow:inset 0 -3px 0 rgba(0,0,0,.25);
+}
+.teaser-medal i{ position:absolute; right:-8px; bottom:-7px; font-style:normal; font-size:14px;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.4)); }
+.teaser-text{ flex:1; min-width:0; }
+.teaser-text b{ display:block; font-size:11.5px; font-weight:900; letter-spacing:.5px; color:#ffdf8a; line-height:1.3; }
+.teaser-text small{ display:block; font-size:9.5px; font-weight:800; color:rgba(255,255,255,.85); margin-top:2px; line-height:1.3; }
+.teaser-badge{
+  flex:none; background:linear-gradient(180deg,#ffe27a,#ffc63c);
+  color:#6b4400; border:2px solid var(--ink); border-radius:999px;
+  padding:3px 11px; font-size:10px; font-weight:900; letter-spacing:1px;
+  box-shadow:0 2px 0 #c98f10;
+}
+
+.lore-row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
+  width:100%; margin:0; position:relative; z-index:2; }
 .lore-btn{
   cursor:pointer; font-family:inherit;
-  background:var(--panel); color:var(--ink-soft);
+  background:rgba(255,255,255,.85); color:var(--ink-soft);
   border:2px solid var(--line); border-radius:999px;
   font-size:13px; font-weight:600; padding:7px 18px;
   transition:transform .16s, border-color .16s, color .16s;
@@ -202,7 +349,8 @@ body::after{
     repeating-linear-gradient(180deg, transparent 0 25px, rgba(47,183,207,.14) 25px 26px),
     #fffdf4;
   border:2px solid #f2d9a4; border-left:5px solid var(--coral);
-  border-radius:14px; padding:14px 16px 12px; margin-bottom:14px;
+  border-radius:14px; padding:14px 16px 12px; margin:0;
+  width:100%; position:relative; z-index:2;
   box-shadow:0 6px 0 rgba(31,120,160,.08);
 }
 .lore-head{
@@ -477,12 +625,37 @@ body[data-map="rocks"]  { --frame:#f6f1fa; }
   .card-icon{ width:38px; height:38px; }
   .card-name{ font-size:11px; letter-spacing:1px; }
   .card-desc{ font-size:9px; min-height:24px; }
-  .menu-card{ padding:22px 14px; margin-top:3vh; }
-  .mode-btn{ padding:10px 12px; gap:10px; }
-  .mode-icon{ width:36px; height:36px; }
+  .menu-card{ padding:20px 12px 16px; margin-top:3vh; }
+  #screen-menu{ padding:0 14px; min-height:calc(100vh - 34px); min-height:calc(100dvh - 34px); }
+  .logo-wrap{ margin-top:36px; }
+  .menu-corner{ top:20px; right:8px; }
+  .corner-btn{ width:46px; height:46px; font-size:20px; }
+  .modes, .duo{ gap:10px; }
+  .mode-btn{ padding:10px 11px; gap:9px; border-radius:20px; }
+  .mode-icon{ width:44px; height:44px; border-radius:15px; }
+  .mode-icon svg{ width:25px; height:25px; }
+  .mode-name{ font-size:13.5px; }
+  .mode-desc{ font-size:9px; }
+  .cta{ height:64px; font-size:20px; }
+  .teaser{ gap:9px; padding:8px 10px; }
+  .teaser-medal{ width:38px; height:38px; font-size:18px; border-radius:12px; }
+  .teaser-text b{ font-size:10px; }
+  .teaser-text small{ font-size:8.5px; }
   .lore-box{ padding:12px 12px 10px; }
   .overlay-card{ padding:24px 20px; margin:0 14px; }
-  .btn-gold{ padding:12px 38px; font-size:16px; }
+  .btn-gold{ padding:13px 40px; font-size:17px; }
+}
+
+/* невысокие экраны (старые телефоны 667px): ужать логотип и сцену,
+   витрина обязана влезать без прокрутки */
+@media (max-height:720px){
+  .logo-wrap{ margin-top:24px; }
+  .logo{ font-size:24px; }
+  .logo b{ font-size:29px; }
+  .ms-sun{ width:44px; height:44px; top:10px; }
+  .ms-palm, .ms-crab{ font-size:28px; bottom:112px; }
+  .cta{ height:60px; font-size:19px; }
+  .menu-corner{ top:18px; }
 }
 
 /* уважение к системной настройке «меньше движения» */

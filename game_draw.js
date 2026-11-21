@@ -17,11 +17,21 @@ function drawClassic(t){
   paintBoardC(S, S.gE, t, false);
 }
 
-function paintBoardC(S, g, t, own){
-  const N = S.N, CELL = S.CELL, PAD = S.PAD, SZ = N * CELL;
-  const map = S.map;
-
-  g.clearRect(0, 0, PAD * 2 + SZ, PAD * 2 + SZ);
+/* статичный слой доски: вода, клетка, сетка, надписи и острова
+   НЕ меняются всю партию — рисуем их один раз в офскрин-кэш, в
+   кадре только накладываем. На слабом телефоне это примерно
+   половина стоимости кадра (живая дуэль 2026-11-21: «тормозило»). */
+function boardStaticC(S, own){
+  const size = S.PAD * 2 + S.N * S.CELL;
+  const key = own ? '_bgP' : '_bgE';
+  if (S[key] && S[key]._size === size) return S[key];
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const cv = document.createElement('canvas');
+  cv.width = size * dpr; cv.height = size * dpr;
+  cv._size = size;
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const N = S.N, CELL = S.CELL, PAD = S.PAD, SZ = N * CELL, map = S.map;
 
   /* светлая вода карты */
   const grad = g.createLinearGradient(0, PAD, 0, PAD + SZ);
@@ -60,6 +70,21 @@ function paintBoardC(S, g, t, own){
     g.fillText(String(i + 1), PAD / 2, PAD + i * CELL + CELL / 2 + 1);
   }
 
+  /* острова в кэше: пальмы видны всегда, а метки выстрелов
+     (динамический слой) ложатся поверх песка — брызги в остров
+     видно даже лучше, чем было */
+  for (const isle of S.isles) drawIsleC(g, isle, PAD, CELL, map);
+
+  S[key] = cv;
+  return cv;
+}
+
+function paintBoardC(S, g, t, own){
+  const N = S.N, CELL = S.CELL, PAD = S.PAD, SZ = N * CELL;
+
+  g.clearRect(0, 0, PAD * 2 + SZ, PAD * 2 + SZ);
+  g.drawImage(boardStaticC(S, own), 0, 0, PAD * 2 + SZ, PAD * 2 + SZ);
+
   if (own){
     drawFleetC(g, S, PAD, CELL, t);
     drawBurntC(g, S.pShot, PAD, CELL);
@@ -78,9 +103,6 @@ function paintBoardC(S, g, t, own){
     drawTorpC(g, S, PAD, CELL, t);
     if (S.phase === 'player' && S.hoverE) drawCrossC(g, S.hoverE, PAD, CELL);
   }
-
-  /* острова поверх моря и меток: пальмы всегда видны */
-  for (const isle of S.isles) drawIsleC(g, isle, PAD, CELL, map);
 
   drawFxC(g, S, own ? 'P' : 'E', PAD, CELL, t);
 }
@@ -391,3 +413,12 @@ function initBoardView(){
   applyBoardView();
 }
 initBoardView();
+
+/* тапы по доскам не должны двигать страницу и зумить: на телефоне
+   из-за pan/zoom тапы по клеткам иногда «пропадали» — и бой шёл
+   «со скрипом» (style.css заморожен, R9 — добавка скриптом) */
+(function injectBoardTouchC(){
+  const st = document.createElement('style');
+  st.textContent = '#canvas-player,#canvas-enemy{touch-action:none}';
+  document.head.appendChild(st);
+})();

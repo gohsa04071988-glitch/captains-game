@@ -2,9 +2,10 @@
 /* ============================================================
    КАПИТАНЫ ОСТРОВОВ — game_fx.js
    ЭФФЕКТЫ КЛАССИЧЕСКОГО БОЯ: метки выстрелов, радар, щит,
-   торпеда со стрелками, летящий снаряд, взрывы и брызги.
-   Только рисование (R4): состояние меняют game_battle.js и
-   game_cards.js. Отрезано от game_core.js (v2.4, R10).
+   торпеда со стрелками, летящий снаряд (полёт и его свист),
+   взрывы и брызги. Только рисование и звук полёта (R4):
+   состояние меняют game_battle.js и game_cards.js.
+   Отрезано от game_core.js (v2.4, R10).
    ============================================================ */
 
 /* метка радара: золотой глаз пульсирует */
@@ -199,6 +200,29 @@ function drawPlacePreview(g, S, PAD, CELL, t){
   if (ok) drawShipSpriteC(g, PAD + c * CELL, PAD + r * CELL,
                           (S.hor ? len : 1) * CELL, (S.hor ? 1 : len) * CELL,
                           S.hor, len, CELL, { t, ghost: true });
+}
+
+/* свист летящего ядра: чем дальше летит снаряд, тем дольше и
+   ниже свист — выстрел в упор и залп через всё море звучат
+   по-разному (живая дуэль 2026-11-22: звук полёта — по
+   расстоянию). Тон плавно падает к месту падения, громкость
+   тихая — под грохотом выстрела. */
+function shellWhistleC(dur, dist){
+  const ac = audioC();
+  if (!ac) return;
+  try {
+    const o = ac.createOscillator(), gn = ac.createGain();
+    const t0 = ac.currentTime, D = Math.max(.15, dur / 1000);
+    o.type = 'sine';
+    o.frequency.setValueAtTime(Math.max(540, 1060 - dist * 54), t0);
+    o.frequency.exponentialRampToValueAtTime(230, t0 + D);
+    gn.gain.setValueAtTime(0.0001, t0);
+    gn.gain.linearRampToValueAtTime(.034, t0 + .05);
+    gn.gain.setValueAtTime(.034, t0 + Math.max(.07, D - .08));
+    gn.gain.exponentialRampToValueAtTime(0.0001, t0 + D);
+    o.connect(gn); gn.connect(ac.destination);
+    o.start(t0); o.stop(t0 + D + .05);
+  } catch (err){ /* без звука тоже играем */ }
 }
 
 /* летящий снаряд — КОМЕТА: чугунное ядро в горячем ореоле,

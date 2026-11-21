@@ -25,6 +25,25 @@ const NET_LIB_URLS = [
   'https://gcore.jsdelivr.net/npm/@trystero-p2p/mqtt@0.27.0/+esm'
 ];
 
+/* TURN-релей для мобильных сетей: два телефона в LTE сидят за
+   CGNAT оператора — без TURN прямое WebRTC поднимается «через
+   раз» (то соединилось, то нет — живая проверка Егора 2026-11-21).
+   OpenRelay — публичный бесплатный релей проекта Metered, его
+   имя/ключ открыты по дизайну (не секрет). */
+const NET_RTC = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:80?transport=tcp',
+      username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443',
+      username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+      username: 'openrelayproject', credential: 'openrelayproject' }
+  ]
+};
+
 const NET_ICON = '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 7 v32"/><path d="M13 8 h15 l-4 5.5 4 5.5 H13" fill="rgba(73,216,207,.18)"/><path d="M31 12 v27"/><path d="M31 31 H17 l4 -5 -4 -5 h14" fill="rgba(245,196,81,.18)"/><path d="M4 44 c3 -2 5 -2 8 0 c3 2 5 2 8 0 c3 -2 5 -2 8 0 c3 2 5 2 8 0 c2 -1 3 -1 4 0" opacity=".5"/></svg>';
 
 /* ---------------- состояние радиорубки ---------------- */
@@ -47,7 +66,7 @@ CPT.net = {
 CPT.mode({
   id: 'duel',
   name: 'БОЙ С ДРУГОМ',
-  desc: 'По коду · на разных устройствах · нужен интернет',
+  desc: 'по коду · интернет',
   icon: NET_ICON,
   start: function(){ netOpenLobby(); }
 });
@@ -179,7 +198,8 @@ async function netCreate(){
     link.host = true;
     link.code = rnd(NET_CODE_WORDS) + '-' + String(1000 + Math.floor(Math.random() * 9000));
     const room = netAdaptRoom(mod.joinRoom(
-      { appId: NET_APP_ID, identity: 'none' }, netNormCode(link.code)));
+      { appId: NET_APP_ID, identity: 'none', rtcConfig: NET_RTC },
+      netNormCode(link.code)));
     link.room = room;
     link.act = room.action('m');
     link.act.onMessage((msg, pid) => netRecv(msg, pid));
@@ -200,9 +220,17 @@ async function netCreate(){
 
 function netGreetHost(){
   if (!link.setup) link.setup = netBuildSetup();
-  CPT.net.send('hello', link.setup);
   netSay('Друг на связи! Готовим море...', 'ok');
-  setTimeout(() => { if (link.peerId) netStartDuel(); }, 800);
+  /* приветствие шлём с повторами: первый пакет на мобильном
+     интернете иногда теряется — без hello гость так и стоит в лобби */
+  let tries = 0;
+  const greet = () => {
+    if (link.started || !link.room || !link.peerId) return;
+    CPT.net.send('hello', link.setup);
+    if (++tries < 5) setTimeout(greet, 2500);
+  };
+  greet();
+  setTimeout(() => { if (link.peerId && !link.started) netStartDuel(); }, 800);
 }
 
 /* ---------------- войти по коду (второй капитан) ---------------- */
@@ -217,17 +245,19 @@ async function netJoinClick(){
     link.host = false;
     link.code = code;
     const room = netAdaptRoom(mod.joinRoom(
-      { appId: NET_APP_ID, identity: 'none' }, code));
+      { appId: NET_APP_ID, identity: 'none', rtcConfig: NET_RTC }, code));
     link.room = room;
     link.act = room.action('m');
     link.act.onMessage((msg, pid) => netRecv(msg, pid));
     room.onJoin(pid => {
-      if (!link.peerId){ link.peerId = pid; netSay('Нашли капитана! Ждём море...', 'ok'); }
+      if (!link.peerId){ link.peerId = pid; netSay('Нашли капитана! Налаживаем прямую связь...', 'ok'); }
     });
     room.onLeave(pid => { if (pid === link.peerId) netPeerGone(); });
+    /* мобильный интернет налаживает связь до минуты — не пугаем
+       раньше времени, просто подсказываем */
     setTimeout(() => {
-      if (link.room && !link.setup && !link.started)
-        netSay('Друг не отвечает. Проверьте код — и попробуйте ещё раз.', 'err');
+      if (link.room && !link.setup && !link.started && activeScreen === 'duel')
+        netSay('Пока тихо. Проверьте код — и подождите: на мобильном интернете связь налаживается до минуты.');
     }, 12000);
   } catch (err){
     netSay('Радиорубка не открылась: ' + err.message, 'err');
@@ -242,7 +272,7 @@ function netRecv(msg, pid){
   if (msg.t === 'hello' && !link.host && !link.setup){
     link.setup = msg.d;
     netSay('Море готово! Капитан ждёт вас...', 'ok');
-    setTimeout(() => { if (link.setup) netStartDuel(); }, 800);
+    setTimeout(() => { if (link.setup && !link.started) netStartDuel(); }, 800);
     return;
   }
   if (link.started && CPT.net.onMsg) CPT.net.onMsg(msg.t, msg.d);

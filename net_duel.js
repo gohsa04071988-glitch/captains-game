@@ -2,24 +2,20 @@
 /* ============================================================
    КАПИТАНЫ ОСТРОВОВ — net_duel.js
    БОЙ С ДРУГОМ — СЕТОВАЯ ДУЭЛЬ: два капитана на разных
-   устройствах в одном море. Правила классики: один выстрел —
-   один ход, острова одинаковые у обоих (их генерирует хозяин
-   и пересылает по коду), флоты приватны: выстрел разрешает
-   тот, в кого попали, и шлёт результат обратно.
-   Ходы: shot/shotRes, радар radar/radarRes, карточки card,
-   готовность go, реванш again/setup. Карточки и торпеда —
-   в net_cards.js (зеркало game_cards.js).
-   Отрисовка и звук — общие с классикой: дуэльное состояние D
-   становится глобальным C, и drawClassic рисует его сам (R6).
-   Фазы D: duel-place | duel-me | duel-them | duel-fire |
-   duel-torp | duel-over — чужие обработчики классики спят.
+   устройствах. Один выстрел — один ход; острова у обоих
+   одинаковые (генерирует хозяин), флоты приватны: выстрел
+   разрешает тот, в кого попали, и шлёт результат обратно.
+   Ходы: shot/shotRes, radar/radarRes, card (ремонт несёт
+   координату пробоины + дубль в shotRes/torpRes), go, реванш.
+   Карточки и торпеда — net_cards.js. D становится общим C —
+   отрисовка классики работает сама (R6). Фазы duel-place|me|
+   them|fire|torp|over — чужие обработчики классики спят.
    ============================================================ */
 
 let D = null;                    // дуэльное состояние (оно же C)
 const DUEL_WAIT = {};            // ожидания ответов shotRes/torpRes/radarRes
 
-/* художник-добавка: призрак постановки и прицел на чужой доске
-   (у дуэли свои фазы — классический preview не включается) */
+/* художник-добавка: призрак постановки и прицел на чужой доске */
 CPT.painter(t => {
   if (!D || C !== D || activeScreen !== 'game') return;
   if (D.phase === 'duel-place' && D.hoverP && D.qi < D.queue.length)
@@ -53,6 +49,7 @@ window.duelStart = function(setup){
     fx: [], t0: performance.now(),
     myReady: false, theirReady: false, goSent: false,
     myAgain: false, theirAgain: false, disconnected: false,
+    inbox: [], lastRes: null, healNext: null, nudges: 0,
     _mapWin: null, overFn: null
   };
   C = D;
@@ -168,6 +165,10 @@ async function duelFire(r, c){
   await sleep(flight);
   if (!D || C !== D || D.phase !== 'duel-fire') return;
   if (!res){ duelOver(null); return; }
+  if (res.healed){                  /* заделанная пробоина: клетка снова открыта; стираем ДО отметки */
+    D.eShot[res.healed.r][res.healed.c] = 0;
+    fxPushC('E', res.healed.r, res.healed.c, 'repair');
+  }
   D.eShot[res.r][res.c] = res.blocked || !res.hit ? 1 : 2;
   if (res.blocked){
     fxPushC('E', res.r, res.c, 'shield');
@@ -207,6 +208,7 @@ function duelEndTurn(msg){
   D.phase = 'duel-them';
   setTurnC('foe');
   sayG(msg);
+  duelPump();                     /* отложенный ход друга */
 }
 
 /* ---------------- выстрел друга (разрешает наша доска) ---------------- */
@@ -238,12 +240,17 @@ async function duelIncomingShot(d){
     splashC();
   }
   res.lost = allSunk(D.pShips);
+  if (D.healNext){                  /* заделанная пробоина уезжает с ответом */
+    res.healed = { r: D.healNext[0], c: D.healNext[1] };
+    D.healNext = null;
+  }
+  D.lastRes = { type: 'shotRes', d: res };
   CPT.net.send('shotRes', res);
   await sleep(HOLD_BOT);
   if (!D || C !== D || D.phase !== 'duel-fire') return;
   if (res.lost){ duelOver(false); return; }
   if (!d.end){
-    /* залп противника продолжается: очередь остаётся у него */
+    /* залп противника продолжается */
     D.phase = 'duel-them';
     sayG((blocked
         ? 'Щит принял выстрел! '
@@ -253,6 +260,7 @@ async function duelIncomingShot(d){
               : 'Друг попал! ')
         : 'Друг промахнулся! ') +
       'ЗАЛП противника: выстрелов осталось ' + (d.left - 1) + '.');
+    duelPump();                    /* его следующий выстрел мог уже прийти */
     return;
   }
   D.phase = 'duel-me';
@@ -277,16 +285,17 @@ async function duelIncomingRadar(){
     const free = ship.cells.filter(([r, c]) => !D.pShot[r][c]);
     cell = (free.length ? rnd(free) : rnd(ship.cells)).slice();
   }
-  CPT.net.send('radarRes', cell ? { r: cell[0], c: cell[1] } : { r: null, c: null });
+  const rres = cell ? { r: cell[0], c: cell[1] } : { r: null, c: null };
+  D.lastRes = { type: 'radarRes', d: rres };
+  CPT.net.send('radarRes', rres);
   D.phase = 'duel-me';
   setTurnC('me');
   sayG('Друг запустил радар — ваш ход!');
 }
 
 /* ---------------- сообщения друга ----------------
-   Щит, ремонт и дым съедают ход сыгравшего — получатель
-   забирает очередь себе. Залп и торпеда только анонсируют:
-   выстрелы и пуск придут отдельными сообщениями. */
+   Щит/ремонт/дым съедают ход сыгравшего; залп и торпеда
+   только анонсируют — выстрелы придут отдельно. */
 function duelIncomingCard(d){
   if (!D || C !== D) return;
   if (d.key === 'smoke'){
@@ -299,7 +308,12 @@ function duelIncomingCard(d){
   if (d.key === 'shield'){
     sayG('Друг поднял щит над флотом. Ваш ход!');
   } else if (d.key === 'repair'){
-    sayG('Друг заделывает пробоину. Ваш ход!');
+    if (d.r != null){               /* метка попадания стирается — выстрел повторить можно */
+      D.eShot[d.r][d.c] = 0;
+      fxPushC('E', d.r, d.c, 'repair');
+      pingC();
+    }
+    sayG('Друг заделал пробоину — в ту клетку можно выстрелить снова. Ваш ход!');
   } else if (d.key === 'salvo'){
     sayG('Друг готовит ЗАЛП!');
     return;
@@ -311,18 +325,57 @@ function duelIncomingCard(d){
   setTurnC('me');
 }
 
-/* ---------------- почта боя ---------------- */
+/* --- почта боя: 10 с «ждём», 30 с переспрос nudge (D.lastRes), ещё 15 с — обрыв --- */
 function duelWait(type){
   return new Promise(resolve => {
-    const timer = setTimeout(() => { delete DUEL_WAIT[type]; resolve(null); }, 15000);
-    DUEL_WAIT[type] = v => { clearTimeout(timer); delete DUEL_WAIT[type]; resolve(v); };
+    let retryT = null;
+    const done = v => {
+      if (done._off) return;
+      done._off = true;
+      clearTimeout(slowT); clearTimeout(mainT); clearTimeout(retryT);
+      delete DUEL_WAIT[type];
+      if (v && D) D.nudges = 0;
+      resolve(v);
+    };
+    const slowT = setTimeout(() => {
+      if (!done._off && D && C === D)
+        sayG('Сеть медленная — всё ещё ждём ответ друга...');
+    }, 10000);
+    const mainT = setTimeout(() => {
+      if (!D || C !== D){ done(null); return; }
+      if (D.nudges >= 3){ done(null); return; }
+      D.nudges++;
+      sayG('Ответ друга потерялся в сети — переспрашиваем...');
+      CPT.net.send('nudge', { for: type });
+      retryT = setTimeout(() => done(null), 15000);
+    }, 30000);
+    DUEL_WAIT[type] = done;
   });
+}
+
+function duelResend(d){
+  if (!D || C !== D || !D.lastRes || D.lastRes.type !== d.for) return;
+  CPT.net.send(D.lastRes.type, D.lastRes.d);
+}
+
+/* отложенные ходы друга, пришедшие посреди анимации (гонка залпа 2026-11-21) */
+function duelPump(){
+  if (!D || C !== D) return;
+  while (D.phase === 'duel-them' && D.inbox.length){
+    const m = D.inbox.shift();
+    duelOnMsg(m[0], m[1]);
+  }
 }
 
 function duelOnMsg(t, d){
   if (!D || C !== D) return;
   if ((t === 'shotRes' || t === 'torpRes' || t === 'radarRes') && DUEL_WAIT[t]){
     DUEL_WAIT[t](d);
+    return;
+  }
+  if (t === 'nudge'){ duelResend(d); return; }
+  if ((t === 'shot' || t === 'torp' || t === 'radar' || t === 'card') && D.phase === 'duel-fire'){
+    if (D.inbox.length < 8) D.inbox.push([t, d]);
     return;
   }
   if (t === 'go'){
@@ -390,9 +443,6 @@ function duelRematchStart(){
     CPT.net.send('setup', s);
     duelStart(Object.assign({}, s, { isHost: true }));
   }
-  /* гость перестраивается, когда придёт 'setup' от хозяина */
 }
-
-/* мост от радиорубки */
 CPT.net.onMsg = duelOnMsg;
 CPT.net.onLeave = duelPeerGone;

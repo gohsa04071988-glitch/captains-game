@@ -241,7 +241,7 @@ const ICON_BATTLESHIP = '<svg viewBox="0 0 48 48" fill="none" stroke="currentCol
 CPT.mode({
   id: 'easy',
   name: 'ПРОСТОЙ БОЙ',
-  desc: 'Поле 8×8 · острова · выбери 3 карты · бот',
+  desc: '8×8 · острова · бот',
   icon: ICON_SCHOONER,
   start: function(){ startClassic('easy'); }
 });
@@ -249,7 +249,7 @@ CPT.mode({
 CPT.mode({
   id: 'hard',
   name: 'СЛОЖНЫЙ БОЙ',
-  desc: 'Поле 10×10 · острова · выбери 3 карты · бот',
+  desc: '10×10 · острова · бот',
   icon: ICON_BATTLESHIP,
   start: function(){ startClassic('hard'); }
 });

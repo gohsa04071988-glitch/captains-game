@@ -9,6 +9,9 @@
    его обманывает сообщение card{key:'smoke'} от друга.
    Состояние D объявлено в net_duel.js, ходы передаёт
    duelEndTurn, ответы ждут duelWait (DUEL_WAIT).
+   Ремонт шлёт другу координату заделанной пробоины (в card и
+   подстраховкой в следующем shotRes/torpRes) — у друга метка
+   попадания стирается, клетку можно обстреливать снова.
    ============================================================ */
 
 let duelPanel = null;
@@ -111,9 +114,14 @@ async function duelUseCard(key){
     const [r, c] = rnd(wounds);
     D.pShot[r][c] = 0;
     D.pRefC[r][c].hits--;
+    /* другу едет КООРДИНАТА заделанной пробоины: у него метка
+       попадания в этой клетке стирается, и выстрел туда можно
+       повторить — иначе заделанный корабль уже не добить и бой
+       нельзя закончить (живая дуэль 2026-11-22) */
+    D.healNext = [r, c];
     fxPushC('P', r, c, 'repair');
     pingC();
-    CPT.net.send('card', { key });
+    CPT.net.send('card', { key, r, c });
     duelUpdateCards();
     duelEndTurn('Пробоина заделана! Ход переходит другу.');
   } else if (key === 'smoke'){
@@ -234,6 +242,11 @@ async function duelFireTorp(r0, c0, dr, dc){
   const res = await duelWait('torpRes');
   if (!D || C !== D || D.phase !== 'duel-torp') return;
   if (!res){ duelOver(null); return; }
+  if (res.healed){                  /* пробоина друга доехала с торпедой:
+                                       клетка снова открыта */
+    D.eShot[res.healed.r][res.healed.c] = 0;
+    fxPushC('E', res.healed.r, res.healed.c, 'repair');
+  }
   D.torpAnim = { r: r0, c: c0, dr, dc };
   await sleep(560);
   if (!D || C !== D) return;
@@ -302,6 +315,11 @@ async function duelIncomingTorp(d){
     if (!D || C !== D || D.phase !== 'duel-fire') return;
   }
   const res = { cells, died, lost: allSunk(D.pShips), sunkWrecks: wrecks };
+  if (D.healNext){                  /* заделанная пробоина уезжает и с торпедой */
+    res.healed = { r: D.healNext[0], c: D.healNext[1] };
+    D.healNext = null;
+  }
+  D.lastRes = { type: 'torpRes', d: res };
   CPT.net.send('torpRes', res);
   if (res.lost){ duelOver(false); return; }
   D.phase = 'duel-me';

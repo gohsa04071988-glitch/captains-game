@@ -55,7 +55,7 @@ const ICON_KRAKEN = '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" 
 CPT.mode({
   id: 'kraken',
   name: 'БОСС: КРАКЕН',
-  desc: 'Поле 10×10 · флот 4-3-2-2 · карточки: радар, торпеда, щит',
+  desc: '10×10 · карточки',
   cls: 'boss',
   icon: ICON_KRAKEN,
   start: function(){ startKrakenBoss(); }

@@ -263,8 +263,10 @@ function fxPushC(board, r, c, type){
 function shellPushC(board, r, c, side){
   const fc = side === 'me' ? -0.65 : C.N - 0.35;
   /* полёт неспешный, ~0.6–1.1 с: комету с хвостом видно издалека */
-  const dur = Math.min(1150, 620 + Math.abs(c - fc) * 48);
+  const dist = Math.abs(c - fc);
+  const dur = Math.min(1150, 620 + dist * 48);
   C.fx.push({ board, type: 'shell', t0: performance.now(), dur, fr: r, fc, r, c });
+  shellWhistleC(dur, dist);     /* свист полёта — длиннее и ниже, чем дальше летит */
   return dur;
 }
 
