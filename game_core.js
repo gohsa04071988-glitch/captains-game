@@ -436,6 +436,7 @@ window.addEventListener('load', function(){
   ];
   const lost = crew.filter(r => !r[1].every(fn => typeof window[fn] === 'function')).map(r => r[0]);
   if (typeof window.BossRender !== 'function') lost.push('kraken_render.js');
+  if (!window.CPT || !window.CPT.TG) lost.push('cpt_tg.js');
   if (!lost.length) return;                    /* экипаж в сборе — тихо */
   console.warn('Капитаны Островов: не подключены —', lost.join(', '));
   const ml = document.getElementById('modes-list');
