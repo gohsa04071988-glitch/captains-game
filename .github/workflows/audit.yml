@@ -1,0 +1,75 @@
+# КАПИТАНЫ ОСТРОВОВ — стенд-аудит при каждом коммите (v2.3.3-стенд, 2026-11-24)
+# Ритуал вечернего аудита из WORKFLOW.md 5.2, только мгновенный:
+# проверяет проект при КАЖДОМ пуше в main. Смотрим проект, не себя.
+# Шаги: синтаксис всех скриптов, лимиты строк (комфорт 450 / красная
+# черта 1000), заглушки запрещены, обязательные файлы на месте.
+# В конце — страховочный ZIP как артефакт: восстановление в один клик.
+
+name: Стенд-аудит
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Забрать репозиторий
+        uses: actions/checkout@v4
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Синтаксис всех скриптов
+        run: |
+          fail=0
+          for f in *.js; do
+            node --check "$f" || { echo "СИНТАКСИС СЛОМАН: $f"; fail=1; }
+          done
+          exit $fail
+
+      - name: Лимиты строк (комфорт 450, красная черта 1000)
+        run: |
+          fail=0
+          for f in *.js; do
+            n=$(wc -l < "$f")
+            if [ "$n" -gt 1000 ]; then
+              echo "КРАСНАЯ ЧЕРТА: $f = $n строк"; fail=1
+            elif [ "$n" -gt 450 ]; then
+              echo "::warning::$f = $n строк — выше комфорта 450, рост только после декомпозиции"
+            fi
+          done
+          exit $fail
+
+      - name: Заглушки запрещены (TODO / FIXME / XXX)
+        run: |
+          if grep -rn "TODO\|FIXME\|XXX" --include="*.js" . ; then
+            echo "В КОДЕ НАЙДЕНЫ ЗАГЛУШКИ"; exit 1
+          fi
+          echo "Заглушек нет"
+
+      - name: Обязательные файлы на месте
+        run: |
+          fail=0
+          for f in index.html style.css fonts.css site.webmanifest \
+                   cpt_core.js game_core.js cpt_tg.js cpt-sw.js cpt_sdk.js; do
+            [ -f "$f" ] || { echo "НЕТ ФАЙЛА: $f"; fail=1; }
+          done
+          exit $fail
+
+      - name: Страховочный ZIP (артефакт)
+        uses: actions/upload-artifact@v4
+        with:
+          name: captains-insurance-zip
+          path: |
+            *.js
+            *.css
+            *.html
+            *.ico
+            *.png
+            site.webmanifest
+          retention-days: 90
