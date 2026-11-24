@@ -11,6 +11,9 @@
    v2.2.5: меню v3 «пляжная витрина» — режимы с row:'duo' попадают
    во второй ряд (#duo-list, Школа+Поход); кнопка «📓 Журнал» в углу
    открывает исторические справки (lore) по желанию, а не постоянно.
+   v2.3.3: «В БОЙ!» краснеет, когда режим выбран (просьба Егора),
+   по кнопке ходят пять живых крабиков разных размеров — на золотой
+   кнопке рыжие, на красной желтеют; версия в меню догнала пакет.
    Модули регистрируются сами, каркас их только собирает:
      CPT.mode({...})   — кнопка режима в главном меню
      CPT.lore({...})   — историческая справка в меню
@@ -20,7 +23,7 @@
    ============================================================ */
 
 window.CPT = {
-  version: '2.2.5',
+  version: '2.3.3',
   _modes: [], _lore: [], _painters: [], _sel: null,
 
   mode: function(def){ this._modes.push(def); },
@@ -56,6 +59,14 @@ window.CPT = {
            контейнера нет или режим без row — общий боевой ряд */
         ((m.row === 'duo' && dl) ? dl : ml).appendChild(b);
       }
+    }
+    var st = document.getElementById('btn-start');
+    if (st && !st.dataset.crabs){
+      st.dataset.crabs = '1';
+      st.insertAdjacentHTML('beforeend',
+        '<span class="crab c1">🦀</span><span class="crab c2">🦀</span>' +
+        '<span class="crab c3">🦀</span><span class="crab c4">🦀</span>' +
+        '<span class="crab c5">🦀</span>');
     }
     var jb = document.getElementById('btn-journal');
     if (jb && !jb.dataset.bound){
@@ -103,6 +114,38 @@ window.CPT = {
    Регистрация после load: не конкурирует со стартом игры.
    Чужие и старые Worker'ы (captains-sw.js прошлых версий)
    снимаем, наш cpt-sw.js не трогаем. --- */
+/* --- v2.3.3: ЖИВАЯ КНОПКА «В БОЙ!» (просьба Егора). Пять крабов
+   разных размеров ходят по кнопке, как по камню, и пропадают за
+   краями. Контраст: золотая кнопка — рыжие крабы, красная — жёлтые.
+   style.css заморожен (R9), поэтому вся краска впрыскивается отсюда, --- */
+(function(){
+  var st = document.createElement('style');
+  st.textContent =
+    '#btn-start{position:relative;overflow:hidden;}' +
+    '#btn-start:not(:disabled){' +
+      'background:linear-gradient(180deg,#ff9d8f 0%,#f46553 34%,#d83425 70%,#b92718 100%);' +
+      'color:#fff;text-shadow:0 1px 0 rgba(90,10,4,.5);' +
+      'box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 6px 0 #7e1408,0 12px 22px rgba(196,40,28,.42);}' +
+    '#btn-start:not(:disabled):hover{transform:translateY(-2px);' +
+      'box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 8px 0 #7e1408,0 16px 26px rgba(196,40,28,.45);}' +
+    '#btn-start:not(:disabled):active{transform:translateY(4px);' +
+      'box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 2px 0 #7e1408,0 6px 12px rgba(196,40,28,.35);}' +
+    '#btn-start .crab{position:absolute;bottom:5px;left:6%;line-height:1;' +
+      'pointer-events:none;animation:crab-walk 3.6s linear infinite;}' +
+    '#btn-start:not(:disabled) .crab{filter:sepia(1) saturate(6) hue-rotate(28deg) brightness(1.35);}' +
+    '#btn-start .c1{font-size:24px;bottom:4px;animation-duration:5.2s;}' +
+    '#btn-start .c2{font-size:15px;bottom:12px;animation-duration:7.4s;animation-delay:-2.9s;animation-direction:reverse;}' +
+    '#btn-start .c3{font-size:19px;bottom:7px;animation-duration:6.3s;animation-delay:-4.1s;}' +
+    '#btn-start .c4{font-size:26px;bottom:2px;animation-duration:8.8s;animation-delay:-1.2s;animation-direction:reverse;}' +
+    '#btn-start .c5{font-size:13px;bottom:16px;animation-duration:5.9s;animation-delay:-3.4s;}' +
+    '@keyframes crab-walk{' +
+      '0%{left:6%;transform:scaleX(1);}48%{left:86%;transform:scaleX(1);}' +
+      '50%{left:86%;transform:scaleX(-1);}98%{left:6%;transform:scaleX(-1);}' +
+      '100%{left:6%;transform:scaleX(1);}}' +
+    '@media (prefers-reduced-motion:reduce){#btn-start .crab{animation:none;left:12%;}}';
+  document.head.appendChild(st);
+})();
+
 (function(){
   if (!('serviceWorker' in navigator)) return;
   var OURS = 'cpt-sw.js';

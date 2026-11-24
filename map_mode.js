@@ -13,11 +13,16 @@
    Поход сохраняется в localStorage (закрыл — продолжил).
    Отрисовка: острова переиспользуют drawIsleC из game_core,
    style.css не трогаем — экран собирается кодом.
+   v2.3.3: карта на телефоне всегда по ширине экрана (раньше
+   торчала за край), мелкие подписи на сжатой карте прячутся,
+   порт и гнёзда боссов подписаны крупно (mapKeyLabel).
    ============================================================ */
 
 const MAP_SPD = 100;            /* скорость корабля, px/с        */
 const MAP_STOP = { sea: 8, chest: 30, isle: 46, boss: 50, port: 44 };
 const MAP_WATER = { top: '#bfeef7', mid: '#7cc9de', deep: '#3e97b8' };
+
+let mapK = 1;                   /* текущий масштаб карты (fitMapCanvas) */
 
 const ICON_MAP = '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 8 l9 -3 10 3 9 -3 v34 l-9 3 -10 -3 -9 3 Z"/><path d="M19 5 v34"/><path d="M29 8 v34"/><circle cx="24" cy="21" r="4.5"/><path d="M24 25 v7"/></svg>';
 
@@ -30,10 +35,7 @@ CPT.mode({
   start: function(){ startMapMode(); }
 });
 
-/* ---------------- экран похода ----------------
-   Собирается кодом при первом старте: классы .screen/.topbar/
-   .status/.btn-small берут вид из style.css — сам файл не
-   меняется. */
+/* ---------------- экран похода: классы берутся из style.css -------- */
 let M = null, Mg = null;
 
 function ensureMapScreen(){
@@ -103,15 +105,18 @@ function mapNew(){
 
 /* ---------------- размер карты: тянем на всё окно ----------------
    Координаты узлов всегда 900×520 (их даёт генератор), но канва
-   показывается с масштабом k: на большом окне карта крупная, на
-   телефоне сжимается. canvasXY сам делит на масштаб, клики не
-   ломаются. Высоту не задаём: правило height:auto держит пропорции. */
+   показывается с масштабом k; canvasXY сам делит на масштаб, клики
+   не ломаются. Высоту не задаём: height:auto держит пропорции.
+   v2.3.3: нижний предел 0.55 → 0.30. Прежний пол не давал карте
+   сжаться до ширины телефона (495px на экране 390px — карта
+   торчала за край), теперь она всегда влезает по ширине. */
 function fitMapCanvas(){
   const cv = $('canvas-map');
   if (!cv || !Mg) return;
   const availW = Math.max(340, window.innerWidth - 26);
   const availH = Math.max(300, window.innerHeight - 172);   /* верхняя панель + трюм */
-  const k = Math.max(.55, Math.min(2.4, Math.min(availW / MAP_W, availH / MAP_H)));
+  const k = Math.max(.3, Math.min(2.4, Math.min(availW / MAP_W, availH / MAP_H)));
+  mapK = k;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   cv.width = Math.round(MAP_W * dpr * k);
   cv.height = Math.round(MAP_H * dpr * k);
@@ -327,10 +332,23 @@ function mapStorm(g, n, ts){
 }
 
 function mapLabel(g, x, y, text, col){
+  if (mapK < 0.62) return;   /* на сжатой (телефонной) карте имена прячем */
   g.font = 'bold 10px Verdana, sans-serif';
   g.textAlign = 'center';
   g.fillStyle = col || 'rgba(16,90,120,.85)';
   g.fillText(text, Math.max(64, Math.min(MAP_W - 64, x)), y);  /* края карты не режем */
+}
+
+/* Метки-ориентиры: порт и гнёзда боссов видны даже на телефоне.
+   Буквы растут обратно сжатию (11/mapK), чтобы читались на экране;
+   x зажимаем по фактической ширине текста — имя не торчит за край. */
+function mapKeyLabel(g, x, y, text, col){
+  const size = Math.min(26, Math.max(10, 11 / mapK));
+  g.font = 'bold ' + size.toFixed(1) + 'px Verdana, sans-serif';
+  g.textAlign = 'center';
+  g.fillStyle = col || 'rgba(16,90,120,.85)';
+  const w = g.measureText(text).width;
+  g.fillText(text, Math.max(w / 2 + 3, Math.min(MAP_W - w / 2 - 3, x)), y);
 }
 
 function mapPort(g, n){
@@ -346,7 +364,7 @@ function mapPort(g, n){
   g.arc(n.x + 12, n.y - 2, 6, 0, Math.PI, false);
   g.moveTo(n.x + 14, n.y - 18); g.lineTo(n.x + 22, n.y - 18);
   g.stroke();
-  mapLabel(g, n.x, n.y + 30, n.name.toUpperCase());
+  mapKeyLabel(g, n.x, n.y + 30, n.name.toUpperCase());
 }
 
 function mapIsle(g, n){
@@ -404,7 +422,7 @@ function mapBoss(g, n, ts){
   }
   g.fillStyle = col;
   g.beginPath(); g.arc(n.x, n.y, 6, 0, 7); g.fill();
-  mapLabel(g, n.x, n.y + 40, n.name.toUpperCase(), col);
+  mapKeyLabel(g, n.x, n.y + 40, n.name.toUpperCase(), col);
 }
 
 function mapFoam(g, ts){
