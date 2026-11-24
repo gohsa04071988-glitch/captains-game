@@ -97,12 +97,25 @@ window.CPT = {
   }
 };
 
-/* Service Worker'ы прошлых версий мешают обновам — снимаем их. */
-if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations){
+/* --- КЭШ-ПАМЯТЬ (v2.3.2, быстрый старт): cpt-sw.js держит копии
+   файлов игры в телефоне — меню со второго захода открывается
+   мгновенно, на мобильном интернете игра больше не «думает».
+   Регистрация после load: не конкурирует со стартом игры.
+   Чужие и старые Worker'ы (captains-sw.js прошлых версий)
+   снимаем, наш cpt-sw.js не трогаем. --- */
+(function(){
+  if (!('serviceWorker' in navigator)) return;
+  var OURS = 'cpt-sw.js';
   navigator.serviceWorker.getRegistrations().then(function(rs){
-    rs.forEach(function(r){ r.unregister(); });
+    rs.forEach(function(r){
+      var url = (r.active && r.active.scriptURL) || (r.installing && r.installing.scriptURL) || '';
+      if (url.indexOf(OURS) === -1) r.unregister();
+    });
   }).catch(function(){});
-}
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register(OURS).catch(function(){});
+  });
+})();
 
 /* --- ДИАГНОСТИКА (правка P6, v2.2.2): счётчик навешанных
    слушателей. Ничего не меняет в поведении — только считает
